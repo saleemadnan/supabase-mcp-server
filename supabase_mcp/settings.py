@@ -108,6 +108,28 @@ class Settings(BaseSettings):
         alias="QUERY_API_URL",
     )
 
+    # ── Meta Marketing API ────────────────────────────────────────────────────
+    meta_app_id: str | None = Field(
+        default=None,
+        description="Meta (Facebook) App ID",
+        alias="META_APP_ID",
+    )
+    meta_app_secret: str | None = Field(
+        default=None,
+        description="Meta (Facebook) App Secret",
+        alias="META_APP_SECRET",
+    )
+    meta_access_token: str | None = Field(
+        default=None,
+        description="Meta Marketing API access token (User or System User token with ads_management scope)",
+        alias="META_ACCESS_TOKEN",
+    )
+    meta_ad_account_id: str | None = Field(
+        default=None,
+        description="Meta Ad Account ID (numeric, e.g. 123456789 or act_123456789)",
+        alias="META_AD_ACCOUNT_ID",
+    )
+
     @field_validator("supabase_region")
     @classmethod
     def validate_region(cls, v: str, info: ValidationInfo) -> str:

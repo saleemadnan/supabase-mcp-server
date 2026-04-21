@@ -90,6 +90,55 @@ class FeatureManager:
             return await self.confirm_destructive_operation(services_container, **kwargs)
         elif tool_name == ToolName.RETRIEVE_LOGS:
             return await self.retrieve_logs(services_container, **kwargs)
+        # Meta Marketing API tools
+        elif tool_name == ToolName.META_GET_ACCOUNT_INFO:
+            return await self.meta_get_account_info(services_container)
+        elif tool_name == ToolName.META_LIST_CAMPAIGNS:
+            return await self.meta_list_campaigns(services_container, **kwargs)
+        elif tool_name == ToolName.META_GET_CAMPAIGN:
+            return await self.meta_get_campaign(services_container, **kwargs)
+        elif tool_name == ToolName.META_CREATE_CAMPAIGN:
+            return await self.meta_create_campaign(services_container, **kwargs)
+        elif tool_name == ToolName.META_UPDATE_CAMPAIGN:
+            return await self.meta_update_campaign(services_container, **kwargs)
+        elif tool_name == ToolName.META_DELETE_CAMPAIGN:
+            return await self.meta_delete_campaign(services_container, **kwargs)
+        elif tool_name == ToolName.META_TOGGLE_CAMPAIGN:
+            return await self.meta_toggle_campaign(services_container, **kwargs)
+        elif tool_name == ToolName.META_LIST_ADSETS:
+            return await self.meta_list_adsets(services_container, **kwargs)
+        elif tool_name == ToolName.META_GET_ADSET:
+            return await self.meta_get_adset(services_container, **kwargs)
+        elif tool_name == ToolName.META_CREATE_ADSET:
+            return await self.meta_create_adset(services_container, **kwargs)
+        elif tool_name == ToolName.META_UPDATE_ADSET:
+            return await self.meta_update_adset(services_container, **kwargs)
+        elif tool_name == ToolName.META_DELETE_ADSET:
+            return await self.meta_delete_adset(services_container, **kwargs)
+        elif tool_name == ToolName.META_LIST_ADS:
+            return await self.meta_list_ads(services_container, **kwargs)
+        elif tool_name == ToolName.META_GET_AD:
+            return await self.meta_get_ad(services_container, **kwargs)
+        elif tool_name == ToolName.META_CREATE_AD:
+            return await self.meta_create_ad(services_container, **kwargs)
+        elif tool_name == ToolName.META_UPDATE_AD:
+            return await self.meta_update_ad(services_container, **kwargs)
+        elif tool_name == ToolName.META_DELETE_AD:
+            return await self.meta_delete_ad(services_container, **kwargs)
+        elif tool_name == ToolName.META_GET_ACCOUNT_INSIGHTS:
+            return await self.meta_get_account_insights(services_container, **kwargs)
+        elif tool_name == ToolName.META_GET_CAMPAIGN_INSIGHTS:
+            return await self.meta_get_campaign_insights(services_container, **kwargs)
+        elif tool_name == ToolName.META_GET_ADSET_INSIGHTS:
+            return await self.meta_get_adset_insights(services_container, **kwargs)
+        elif tool_name == ToolName.META_GET_AD_INSIGHTS:
+            return await self.meta_get_ad_insights(services_container, **kwargs)
+        elif tool_name == ToolName.META_LIST_CREATIVES:
+            return await self.meta_list_creatives(services_container, **kwargs)
+        elif tool_name == ToolName.META_CREATE_CREATIVE:
+            return await self.meta_create_creative(services_container, **kwargs)
+        elif tool_name == ToolName.META_EXCHANGE_TOKEN:
+            return await self.meta_exchange_token(services_container, **kwargs)
         else:
             raise ValueError(f"Unknown tool: {tool_name}")
 
@@ -245,3 +294,142 @@ class FeatureManager:
         logger.info(f"Tool completed: retrieve_logs - Retrieved log entries for collection={collection}")
 
         return result
+
+    # ── Meta Marketing API helpers ─────────────────────────────────────────────
+
+    def _meta_manager(self, container: "ServicesContainer") -> Any:
+        """Return the MetaAdsCampaignManager from the container."""
+        from supabase_mcp.exceptions import APIClientError
+
+        manager = container.meta_ads_manager  # type: ignore[attr-defined]
+        if manager is None:
+            raise APIClientError(
+                message=(
+                    "Meta Ads is not configured. "
+                    "Set META_APP_ID, META_APP_SECRET, META_ACCESS_TOKEN, and META_AD_ACCOUNT_ID."
+                ),
+                status_code=None,
+            )
+        return manager
+
+    async def meta_get_account_info(self, container: "ServicesContainer") -> dict[str, Any]:
+        return await self._meta_manager(container).get_account_info()
+
+    async def meta_list_campaigns(
+        self, container: "ServicesContainer", status_filter: str | None = None, limit: int = 25
+    ) -> dict[str, Any]:
+        return await self._meta_manager(container).list_campaigns(status_filter=status_filter, limit=limit)
+
+    async def meta_get_campaign(self, container: "ServicesContainer", campaign_id: str) -> dict[str, Any]:
+        return await self._meta_manager(container).get_campaign(campaign_id)
+
+    async def meta_create_campaign(self, container: "ServicesContainer", campaign: dict[str, Any]) -> dict[str, Any]:
+        from supabase_mcp.services.meta_ads.models import CreateCampaignRequest
+
+        return await self._meta_manager(container).create_campaign(CreateCampaignRequest(**campaign))
+
+    async def meta_update_campaign(
+        self, container: "ServicesContainer", campaign_id: str, updates: dict[str, Any]
+    ) -> dict[str, Any]:
+        from supabase_mcp.services.meta_ads.models import UpdateCampaignRequest
+
+        return await self._meta_manager(container).update_campaign(campaign_id, UpdateCampaignRequest(**updates))
+
+    async def meta_delete_campaign(self, container: "ServicesContainer", campaign_id: str) -> dict[str, Any]:
+        return await self._meta_manager(container).delete_campaign(campaign_id)
+
+    async def meta_toggle_campaign(
+        self, container: "ServicesContainer", campaign_id: str, active: bool
+    ) -> dict[str, Any]:
+        return await self._meta_manager(container).toggle_campaign(campaign_id, active)
+
+    async def meta_list_adsets(
+        self, container: "ServicesContainer", campaign_id: str | None = None, limit: int = 25
+    ) -> dict[str, Any]:
+        return await self._meta_manager(container).list_adsets(campaign_id=campaign_id, limit=limit)
+
+    async def meta_get_adset(self, container: "ServicesContainer", adset_id: str) -> dict[str, Any]:
+        return await self._meta_manager(container).get_adset(adset_id)
+
+    async def meta_create_adset(self, container: "ServicesContainer", adset: dict[str, Any]) -> dict[str, Any]:
+        from supabase_mcp.services.meta_ads.models import CreateAdSetRequest
+
+        return await self._meta_manager(container).create_adset(CreateAdSetRequest(**adset))
+
+    async def meta_update_adset(
+        self, container: "ServicesContainer", adset_id: str, updates: dict[str, Any]
+    ) -> dict[str, Any]:
+        return await self._meta_manager(container).update_adset(adset_id, updates)
+
+    async def meta_delete_adset(self, container: "ServicesContainer", adset_id: str) -> dict[str, Any]:
+        return await self._meta_manager(container).delete_adset(adset_id)
+
+    async def meta_list_ads(
+        self, container: "ServicesContainer", adset_id: str | None = None, limit: int = 25
+    ) -> dict[str, Any]:
+        return await self._meta_manager(container).list_ads(adset_id=adset_id, limit=limit)
+
+    async def meta_get_ad(self, container: "ServicesContainer", ad_id: str) -> dict[str, Any]:
+        return await self._meta_manager(container).get_ad(ad_id)
+
+    async def meta_create_ad(self, container: "ServicesContainer", ad: dict[str, Any]) -> dict[str, Any]:
+        from supabase_mcp.services.meta_ads.models import CreateAdRequest
+
+        return await self._meta_manager(container).create_ad(CreateAdRequest(**ad))
+
+    async def meta_update_ad(
+        self, container: "ServicesContainer", ad_id: str, updates: dict[str, Any]
+    ) -> dict[str, Any]:
+        return await self._meta_manager(container).update_ad(ad_id, updates)
+
+    async def meta_delete_ad(self, container: "ServicesContainer", ad_id: str) -> dict[str, Any]:
+        return await self._meta_manager(container).delete_ad(ad_id)
+
+    async def meta_get_account_insights(
+        self, container: "ServicesContainer", insights: dict[str, Any] = {}
+    ) -> dict[str, Any]:
+        from supabase_mcp.services.meta_ads.models import InsightsRequest
+
+        return await self._meta_manager(container).get_account_insights(InsightsRequest(**insights))
+
+    async def meta_get_campaign_insights(
+        self, container: "ServicesContainer", campaign_id: str, insights: dict[str, Any] = {}
+    ) -> dict[str, Any]:
+        from supabase_mcp.services.meta_ads.models import InsightsRequest
+
+        return await self._meta_manager(container).get_campaign_insights(campaign_id, InsightsRequest(**insights))
+
+    async def meta_get_adset_insights(
+        self, container: "ServicesContainer", adset_id: str, insights: dict[str, Any] = {}
+    ) -> dict[str, Any]:
+        from supabase_mcp.services.meta_ads.models import InsightsRequest
+
+        return await self._meta_manager(container).get_adset_insights(adset_id, InsightsRequest(**insights))
+
+    async def meta_get_ad_insights(
+        self, container: "ServicesContainer", ad_id: str, insights: dict[str, Any] = {}
+    ) -> dict[str, Any]:
+        from supabase_mcp.services.meta_ads.models import InsightsRequest
+
+        return await self._meta_manager(container).get_ad_insights(ad_id, InsightsRequest(**insights))
+
+    async def meta_list_creatives(self, container: "ServicesContainer", limit: int = 25) -> dict[str, Any]:
+        return await self._meta_manager(container).list_creatives(limit=limit)
+
+    async def meta_create_creative(
+        self, container: "ServicesContainer", creative_data: dict[str, Any]
+    ) -> dict[str, Any]:
+        return await self._meta_manager(container).create_creative(creative_data)
+
+    async def meta_exchange_token(
+        self, container: "ServicesContainer", short_lived_token: str
+    ) -> dict[str, Any]:
+        client = container.meta_ads_client  # type: ignore[attr-defined]
+        if client is None:
+            from supabase_mcp.exceptions import APIClientError
+
+            raise APIClientError(
+                message="Meta Ads client is not configured. Set META_APP_ID and META_APP_SECRET.",
+                status_code=None,
+            )
+        return await client.exchange_token(short_lived_token)

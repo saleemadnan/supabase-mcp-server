@@ -1,0 +1,273 @@
+# Meta Marketing API tool descriptions
+
+meta_get_account_info: |
+  Get information about the Meta ad account.
+
+  Returns account details including name, status, currency, timezone, and
+  current balance/spend information.
+
+  REQUIREMENTS:
+  - META_APP_ID, META_APP_SECRET, META_ACCESS_TOKEN, META_AD_ACCOUNT_ID must be configured.
+
+  SAFETY: Read-only operation.
+
+meta_list_campaigns: |
+  List all campaigns for the Meta ad account.
+
+  Returns a paginated list of campaigns with their status, objective, budget,
+  and scheduling information.
+
+  PARAMETERS:
+  - status_filter: Optional status filter (ACTIVE, PAUSED, DELETED, ARCHIVED)
+  - limit: Maximum number of campaigns to return (default 25)
+
+  SAFETY: Read-only operation.
+
+meta_get_campaign: |
+  Get details for a specific Meta campaign.
+
+  PARAMETERS:
+  - campaign_id: The campaign ID
+
+  SAFETY: Read-only operation.
+
+meta_create_campaign: |
+  Create a new Meta advertising campaign.
+
+  PARAMETERS:
+  - name: Campaign name (required)
+  - objective: Campaign objective — one of:
+      AWARENESS, TRAFFIC, ENGAGEMENT, LEADS, APP_PROMOTION, SALES,
+      LINK_CLICKS, CONVERSIONS, BRAND_AWARENESS, REACH, VIDEO_VIEWS, MESSAGES
+  - status: Initial status — ACTIVE or PAUSED (default: PAUSED)
+  - special_ad_categories: List of special categories (e.g. ["CREDIT", "EMPLOYMENT"])
+  - daily_budget: Daily budget in cents (e.g. 1000 = $10.00)
+  - lifetime_budget: Lifetime budget in cents
+
+  NOTE: Only one of daily_budget or lifetime_budget can be set at a time.
+
+  SAFETY: Write operation — creates a new campaign object. Does NOT spend money
+  until ad sets and ads are configured and status is ACTIVE.
+
+meta_update_campaign: |
+  Update an existing Meta campaign.
+
+  PARAMETERS:
+  - campaign_id: The campaign ID to update (required)
+  - name: New name (optional)
+  - status: New status — ACTIVE, PAUSED, ARCHIVED (optional)
+  - daily_budget: New daily budget in cents (optional)
+  - lifetime_budget: New lifetime budget in cents (optional)
+
+  SAFETY: Write operation — modifies an existing campaign.
+
+meta_delete_campaign: |
+  Delete a Meta campaign permanently.
+
+  PARAMETERS:
+  - campaign_id: The campaign ID to delete (required)
+
+  WARNING: This is a destructive operation. The campaign will be permanently deleted
+  along with all its ad sets and ads. This cannot be undone.
+
+  SAFETY: Destructive operation — use with caution.
+
+meta_toggle_campaign: |
+  Pause or activate a Meta campaign.
+
+  PARAMETERS:
+  - campaign_id: The campaign ID (required)
+  - active: true to activate, false to pause (required)
+
+  SAFETY: Write operation.
+
+meta_list_adsets: |
+  List ad sets for the Meta ad account or a specific campaign.
+
+  PARAMETERS:
+  - campaign_id: Optional — filter by campaign ID
+  - limit: Maximum number of ad sets to return (default 25)
+
+  SAFETY: Read-only operation.
+
+meta_get_adset: |
+  Get details for a specific Meta ad set.
+
+  PARAMETERS:
+  - adset_id: The ad set ID (required)
+
+  SAFETY: Read-only operation.
+
+meta_create_adset: |
+  Create a new Meta ad set within an existing campaign.
+
+  PARAMETERS:
+  - campaign_id: Parent campaign ID (required)
+  - name: Ad set name (required)
+  - billing_event: How you are charged — IMPRESSIONS, LINK_CLICKS, etc. (required)
+  - optimization_goal: What to optimize for — REACH, LINK_CLICKS, OFFSITE_CONVERSIONS, etc. (required)
+  - bid_amount: Bid in cents (optional — use for manual bidding)
+  - daily_budget: Daily budget in cents (optional)
+  - lifetime_budget: Lifetime budget in cents (optional)
+  - start_time: ISO 8601 start time (optional)
+  - end_time: ISO 8601 end time (optional)
+  - targeting: Targeting specification dict (optional)
+    Example: {"age_min": 18, "age_max": 45, "genders": [1,2],
+               "geo_locations": {"countries": ["US", "SA"]}}
+  - status: ACTIVE or PAUSED (default: PAUSED)
+
+  SAFETY: Write operation.
+
+meta_update_adset: |
+  Update a Meta ad set with arbitrary field changes.
+
+  PARAMETERS:
+  - adset_id: The ad set ID (required)
+  - updates: Dictionary of fields to update (required)
+    Common fields: name, status, daily_budget, lifetime_budget, bid_amount,
+                   end_time, targeting
+
+  SAFETY: Write operation.
+
+meta_delete_adset: |
+  Delete a Meta ad set permanently.
+
+  PARAMETERS:
+  - adset_id: The ad set ID to delete (required)
+
+  SAFETY: Destructive operation.
+
+meta_list_ads: |
+  List ads for the Meta ad account or a specific ad set.
+
+  PARAMETERS:
+  - adset_id: Optional — filter by ad set ID
+  - limit: Maximum number of ads to return (default 25)
+
+  SAFETY: Read-only operation.
+
+meta_get_ad: |
+  Get details for a specific Meta ad.
+
+  PARAMETERS:
+  - ad_id: The ad ID (required)
+
+  SAFETY: Read-only operation.
+
+meta_create_ad: |
+  Create a new Meta ad within an existing ad set.
+
+  PARAMETERS:
+  - adset_id: Parent ad set ID (required)
+  - name: Ad name (required)
+  - creative: Creative specification dict (required)
+    Can be an existing creative ID: {"creative_id": "123456"}
+    Or inline spec with object_story_spec, image_hash, etc.
+  - status: ACTIVE or PAUSED (default: PAUSED)
+
+  SAFETY: Write operation.
+
+meta_update_ad: |
+  Update a Meta ad with arbitrary field changes.
+
+  PARAMETERS:
+  - ad_id: The ad ID (required)
+  - updates: Dictionary of fields to update (required)
+    Common fields: name, status, creative
+
+  SAFETY: Write operation.
+
+meta_delete_ad: |
+  Delete a Meta ad permanently.
+
+  PARAMETERS:
+  - ad_id: The ad ID to delete (required)
+
+  SAFETY: Destructive operation.
+
+meta_get_account_insights: |
+  Get performance insights for the entire Meta ad account.
+
+  PARAMETERS:
+  - fields: List of metric fields to return (default: impressions, clicks, spend, reach, cpc, cpm, ctr)
+  - date_preset: Predefined date range — today, yesterday, last_7d, last_14d,
+                 last_30d, last_month, this_month, this_year, last_year (default: last_7d)
+  - time_increment: Group results by N days (optional)
+  - breakdowns: List of breakdown dimensions — age, gender, country, placement, etc. (optional)
+
+  SAFETY: Read-only operation.
+
+meta_get_campaign_insights: |
+  Get performance insights for a specific Meta campaign.
+
+  PARAMETERS:
+  - campaign_id: The campaign ID (required)
+  - fields: List of metric fields (default: impressions, clicks, spend, reach, cpc, cpm, ctr)
+  - date_preset: Date range preset (default: last_7d)
+  - time_increment: Group by N days (optional)
+  - breakdowns: Breakdown dimensions (optional)
+
+  SAFETY: Read-only operation.
+
+meta_get_adset_insights: |
+  Get performance insights for a specific Meta ad set.
+
+  PARAMETERS:
+  - adset_id: The ad set ID (required)
+  - fields: List of metric fields (default: impressions, clicks, spend, reach, cpc, cpm, ctr)
+  - date_preset: Date range preset (default: last_7d)
+  - time_increment: Group by N days (optional)
+  - breakdowns: Breakdown dimensions (optional)
+
+  SAFETY: Read-only operation.
+
+meta_get_ad_insights: |
+  Get performance insights for a specific Meta ad.
+
+  PARAMETERS:
+  - ad_id: The ad ID (required)
+  - fields: List of metric fields (default: impressions, clicks, spend, reach, cpc, cpm, ctr)
+  - date_preset: Date range preset (default: last_7d)
+  - time_increment: Group by N days (optional)
+  - breakdowns: Breakdown dimensions (optional)
+
+  SAFETY: Read-only operation.
+
+meta_list_creatives: |
+  List ad creatives for the Meta ad account.
+
+  PARAMETERS:
+  - limit: Maximum number of creatives to return (default 25)
+
+  SAFETY: Read-only operation.
+
+meta_create_creative: |
+  Create a new Meta ad creative.
+
+  PARAMETERS:
+  - creative_data: Creative specification dict (required)
+    Example for a link ad:
+    {
+      "name": "My Creative",
+      "object_story_spec": {
+        "page_id": "PAGE_ID",
+        "link_data": {
+          "link": "https://example.com",
+          "message": "Check this out!",
+          "name": "Ad Headline",
+          "description": "Ad description"
+        }
+      }
+    }
+
+  SAFETY: Write operation.
+
+meta_exchange_token: |
+  Exchange a short-lived Meta user access token for a long-lived token (60 days).
+
+  PARAMETERS:
+  - short_lived_token: The short-lived access token to exchange (required)
+
+  The long-lived token is returned and should be saved as META_ACCESS_TOKEN.
+
+  SAFETY: Read-only — only exchanges tokens, does not modify any ad objects.
