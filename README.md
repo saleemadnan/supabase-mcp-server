@@ -514,6 +514,58 @@ The server provides access to Supabase logs and analytics data, making it easier
 
 Simplifies debugging across your Supabase stack without switching between interfaces or writing complex queries.
 
+### Meta Marketing API tools
+
+The server provides a full integration with the **Meta Marketing (Graph) API**, enabling AI-driven campaign management for Facebook and Instagram Ads directly from your chat interface.
+
+#### Setup
+
+Add the following to your `.env` file (already in `.gitignore`):
+
+```env
+META_APP_ID=your_app_id
+META_APP_SECRET=your_app_secret
+META_ACCESS_TOKEN=your_access_token      # User or System User token with ads_management scope
+META_AD_ACCOUNT_ID=123456789             # Numeric account ID (act_ prefix is optional)
+
+# Optional — override defaults
+META_API_VERSION=v21.0    # Graph API version (default: v21.0)
+META_REQUEST_TIMEOUT=30   # Request timeout in seconds (default: 30)
+```
+
+When the credentials are not present the server starts normally — Meta tools return a descriptive configuration error instead of crashing.
+
+#### Available tools (24)
+
+| Category | Tools |
+|----------|-------|
+| Account | `meta_get_account_info` |
+| Campaigns | `meta_list_campaigns`, `meta_get_campaign`, `meta_create_campaign`, `meta_update_campaign`, `meta_delete_campaign`, `meta_toggle_campaign` |
+| Ad Sets | `meta_list_adsets`, `meta_get_adset`, `meta_create_adset`, `meta_update_adset`, `meta_delete_adset` |
+| Ads | `meta_list_ads`, `meta_get_ad`, `meta_create_ad`, `meta_update_ad`, `meta_delete_ad` |
+| Insights | `meta_get_account_insights`, `meta_get_campaign_insights`, `meta_get_adset_insights`, `meta_get_ad_insights` |
+| Creatives | `meta_list_creatives`, `meta_create_creative` |
+| Auth | `meta_exchange_token` |
+
+#### Safety controls
+
+Meta tools follow the same safety model as database and API tools:
+
+- **Read-only tools** (list/get/insights) — always allowed.
+- **Write tools** (create/update/toggle) — require `live_dangerously(service="meta", enable_unsafe_mode=True)` first.
+- **Delete tools** (`meta_delete_campaign`, `meta_delete_adset`, `meta_delete_ad`) — require unsafe mode **and** explicit confirmation via `confirm_destructive_operation(operation_type="meta", ...)`.
+
+#### Arabic web dashboard
+
+A standalone management dashboard is included:
+
+```bash
+META_ACCESS_TOKEN=xxx META_AD_ACCOUNT_ID=yyy python meta_dashboard.py
+# Open http://localhost:8080
+```
+
+The dashboard provides a real-time view of campaigns, ad sets, ads, and account insights with a full Arabic RTL interface. It listens on `127.0.0.1` only (not exposed to the network). The port can be overridden via `DASHBOARD_PORT`.
+
 ### Automatic Versioning of Database Changes
 
 "With great power comes great responsibility." While `execute_postgresql` tool coupled with aptly named `live_dangerously` tool provide a powerful and simple way to manage your Supabase database, it also means that dropping a table or modifying one is one chat message away. In order to reduce the risk of irreversible changes, since v0.3.8 the server supports:

@@ -19,38 +19,46 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-import httpx
-
-META_API_VERSION = "v19.0"
-META_BASE = f"https://graph.facebook.com/{META_API_VERSION}"
+from supabase_mcp.clients.meta_ads_client import MetaAdsClient
 
 APP_ID = os.environ.get("META_APP_ID", "")
 APP_SECRET = os.environ.get("META_APP_SECRET", "")
 ACCESS_TOKEN = os.environ.get("META_ACCESS_TOKEN", "")
 AD_ACCOUNT_ID = os.environ.get("META_AD_ACCOUNT_ID", "")
+API_VERSION = os.environ.get("META_API_VERSION", "v21.0")
 
 if AD_ACCOUNT_ID and not AD_ACCOUNT_ID.startswith("act_"):
     AD_ACCOUNT_ID = f"act_{AD_ACCOUNT_ID}"
+
+# Module-level client shared across all requests.
+_meta_client: MetaAdsClient | None = None
+
+
+def _get_client() -> MetaAdsClient:
+    global _meta_client
+    if _meta_client is None:
+        _meta_client = MetaAdsClient(
+            access_token=ACCESS_TOKEN,
+            app_id=APP_ID,
+            app_secret=APP_SECRET,
+            api_version=API_VERSION,
+            timeout=15.0,
+        )
+    return _meta_client
 
 
 # ── API helpers ──────────────────────────────────────────────────────────────
 
 def api_get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
-    p = dict(params or {})
-    p["access_token"] = ACCESS_TOKEN
-    r = httpx.get(f"{META_BASE}{path}", params=p, timeout=15)
-    return r.json()
+    return asyncio.run(_get_client().get(path, params))
 
 
 def api_post(path: str, body: dict[str, Any]) -> dict[str, Any]:
-    body["access_token"] = ACCESS_TOKEN
-    r = httpx.post(f"{META_BASE}{path}", data=body, timeout=15)
-    return r.json()
+    return asyncio.run(_get_client().post(path, body=body))
 
 
 def api_delete(path: str) -> dict[str, Any]:
-    r = httpx.delete(f"{META_BASE}{path}", params={"access_token": ACCESS_TOKEN}, timeout=15)
-    return r.json()
+    return asyncio.run(_get_client().delete(path))
 
 
 # ── Dashboard HTML ────────────────────────────────────────────────────────────
@@ -568,7 +576,7 @@ def main() -> None:
         return
 
     port = int(os.environ.get("DASHBOARD_PORT", 8080))
-    server = HTTPServer(("0.0.0.0", port), DashboardHandler)
+    server = HTTPServer(("127.0.0.1", port), DashboardHandler)
     print(f"✓ Meta Ads Dashboard running at http://localhost:{port}")
     print(f"  Ad Account: {AD_ACCOUNT_ID}")
     print("  Press Ctrl+C to stop.")

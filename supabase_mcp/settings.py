@@ -129,6 +129,16 @@ class Settings(BaseSettings):
         description="Meta Ad Account ID (numeric, e.g. 123456789 or act_123456789)",
         alias="META_AD_ACCOUNT_ID",
     )
+    meta_api_version: str = Field(
+        default="v21.0",
+        description="Meta Graph API version (e.g. v21.0)",
+        alias="META_API_VERSION",
+    )
+    meta_request_timeout: float = Field(
+        default=30.0,
+        description="Timeout in seconds for Meta API requests",
+        alias="META_REQUEST_TIMEOUT",
+    )
 
     @field_validator("supabase_region")
     @classmethod

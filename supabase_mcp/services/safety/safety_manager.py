@@ -5,7 +5,7 @@ from typing import Any, Optional
 from supabase_mcp.exceptions import ConfirmationRequiredError, OperationNotAllowedError
 from supabase_mcp.logger import logger
 from supabase_mcp.services.safety.models import ClientType, SafetyMode
-from supabase_mcp.services.safety.safety_configs import APISafetyConfig, SafetyConfigBase, SQLSafetyConfig
+from supabase_mcp.services.safety.safety_configs import APISafetyConfig, MetaSafetyConfig, SafetyConfigBase, SQLSafetyConfig
 
 
 class SafetyManager:
@@ -24,6 +24,7 @@ class SafetyManager:
         self._safety_modes: dict[ClientType, SafetyMode] = {
             ClientType.DATABASE: SafetyMode.SAFE,
             ClientType.API: SafetyMode.SAFE,
+            ClientType.META: SafetyMode.SAFE,
         }
         self._safety_configs: dict[ClientType, SafetyConfigBase[Any]] = {}
         self._pending_confirmations: dict[str, dict[str, Any]] = {}
@@ -49,6 +50,10 @@ class SafetyManager:
         # Register API safety config
         api_config = APISafetyConfig()
         self.register_config(ClientType.API, api_config)
+
+        # Register Meta safety config
+        meta_config = MetaSafetyConfig()
+        self.register_config(ClientType.META, meta_config)
 
         logger.info("✓ Safety configurations registered successfully")
         return True

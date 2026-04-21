@@ -25,3 +25,4 @@ class ClientType(str, Enum):
 
     DATABASE = "database"
     API = "api"
+    META = "meta"

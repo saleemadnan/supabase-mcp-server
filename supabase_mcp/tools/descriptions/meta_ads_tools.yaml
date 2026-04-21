@@ -36,9 +36,9 @@ meta_create_campaign: |
 
   PARAMETERS:
   - name: Campaign name (required)
-  - objective: Campaign objective — one of:
-      AWARENESS, TRAFFIC, ENGAGEMENT, LEADS, APP_PROMOTION, SALES,
-      LINK_CLICKS, CONVERSIONS, BRAND_AWARENESS, REACH, VIDEO_VIEWS, MESSAGES
+  - objective: Campaign objective. Use ODAX objectives for new campaigns (recommended):
+        ODAX   — AWARENESS, TRAFFIC, ENGAGEMENT, LEADS, APP_PROMOTION, SALES
+        Legacy — LINK_CLICKS, CONVERSIONS, BRAND_AWARENESS, REACH, VIDEO_VIEWS, MESSAGES
   - status: Initial status — ACTIVE or PAUSED (default: PAUSED)
   - special_ad_categories: List of special categories (e.g. ["CREDIT", "EMPLOYMENT"])
   - daily_budget: Daily budget in cents (e.g. 1000 = $10.00)

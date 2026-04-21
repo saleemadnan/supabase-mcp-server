@@ -15,20 +15,30 @@ class CampaignStatus(str, Enum):
     ARCHIVED = "ARCHIVED"
 
 
-class CampaignObjective(str, Enum):
+class ODAXObjective(str, Enum):
+    """Outcome-Driven Ad Experiences (ODAX) objectives — current Meta standard."""
+
     AWARENESS = "AWARENESS"
     TRAFFIC = "TRAFFIC"
     ENGAGEMENT = "ENGAGEMENT"
     LEADS = "LEADS"
     APP_PROMOTION = "APP_PROMOTION"
     SALES = "SALES"
-    # Legacy objectives still supported
+
+
+class LegacyObjective(str, Enum):
+    """Legacy campaign objectives kept for backwards compatibility with older ad accounts."""
+
     LINK_CLICKS = "LINK_CLICKS"
     CONVERSIONS = "CONVERSIONS"
     BRAND_AWARENESS = "BRAND_AWARENESS"
     REACH = "REACH"
     VIDEO_VIEWS = "VIDEO_VIEWS"
     MESSAGES = "MESSAGES"
+
+
+# Union type accepted by CreateCampaignRequest so both enum families work.
+CampaignObjective = ODAXObjective | LegacyObjective  # type: ignore[assignment]
 
 
 class BillingEvent(str, Enum):

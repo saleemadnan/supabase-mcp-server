@@ -135,14 +135,15 @@ class ToolRegistry:
 
         @mcp.tool(description=tool_manager.get_description(ToolName.LIVE_DANGEROUSLY))  # type: ignore
         async def live_dangerously(
-            service: Literal["api", "database"], enable_unsafe_mode: bool = False
+            service: Literal["api", "database", "meta"], enable_unsafe_mode: bool = False
         ) -> dict[str, Any]:
             """
-            Toggle between safe and unsafe operation modes for API or Database services.
+            Toggle between safe and unsafe operation modes for API, Database, or Meta services.
 
             This function controls the safety level for operations, allowing you to:
             - Enable write operations for the database (INSERT, UPDATE, DELETE, schema changes)
             - Enable state-changing operations for the Management API
+            - Enable write/delete operations for Meta Marketing API campaigns and ads
             """
             return await feature_manager.execute_tool(
                 ToolName.LIVE_DANGEROUSLY,
@@ -153,7 +154,7 @@ class ToolRegistry:
 
         @mcp.tool(description=tool_manager.get_description(ToolName.CONFIRM_DESTRUCTIVE_OPERATION))  # type: ignore
         async def confirm_destructive_operation(
-            operation_type: Literal["api", "database"], confirmation_id: str, user_confirmation: bool = False
+            operation_type: Literal["api", "database", "meta"], confirmation_id: str, user_confirmation: bool = False
         ) -> QueryResult | dict[str, Any]:
             """Execute a destructive operation after confirmation. Use this only after reviewing the risks with the user."""
             return await feature_manager.execute_tool(

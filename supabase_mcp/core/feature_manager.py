@@ -223,35 +223,34 @@ class FeatureManager:
         return await sdk_client.call_auth_admin_method(method, params)
 
     async def live_dangerously(
-        self, container: "ServicesContainer", service: Literal["api", "database"], enable_unsafe_mode: bool = False
+        self, container: "ServicesContainer", service: Literal["api", "database", "meta"], enable_unsafe_mode: bool = False
     ) -> dict[str, Any]:
         """
-        Toggle between safe and unsafe operation modes for API or Database services.
+        Toggle between safe and unsafe operation modes for API, Database, or Meta services.
 
         This function controls the safety level for operations, allowing you to:
         - Enable write operations for the database (INSERT, UPDATE, DELETE, schema changes)
         - Enable state-changing operations for the Management API
+        - Enable write/delete operations for Meta Marketing API campaigns and ads
         """
         safety_manager = container.safety_manager
         if service == "api":
-            # Set the safety mode in the safety manager
             new_mode = SafetyMode.UNSAFE if enable_unsafe_mode else SafetyMode.SAFE
             safety_manager.set_safety_mode(ClientType.API, new_mode)
-
-            # Return the actual mode that was set
             return {"service": "api", "mode": safety_manager.get_safety_mode(ClientType.API)}
         elif service == "database":
-            # Set the safety mode in the safety manager
             new_mode = SafetyMode.UNSAFE if enable_unsafe_mode else SafetyMode.SAFE
             safety_manager.set_safety_mode(ClientType.DATABASE, new_mode)
-
-            # Return the actual mode that was set
             return {"service": "database", "mode": safety_manager.get_safety_mode(ClientType.DATABASE)}
+        elif service == "meta":
+            new_mode = SafetyMode.UNSAFE if enable_unsafe_mode else SafetyMode.SAFE
+            safety_manager.set_safety_mode(ClientType.META, new_mode)
+            return {"service": "meta", "mode": safety_manager.get_safety_mode(ClientType.META)}
 
     async def confirm_destructive_operation(
         self,
         container: "ServicesContainer",
-        operation_type: Literal["api", "database"],
+        operation_type: Literal["api", "database", "meta"],
         confirmation_id: str,
         user_confirmation: bool = False,
     ) -> QueryResult | dict[str, Any]:
@@ -265,6 +264,16 @@ class FeatureManager:
             return await api_manager.handle_confirmation(confirmation_id)
         elif operation_type == "database":
             return await query_manager.handle_confirmation(confirmation_id)
+        elif operation_type == "meta":
+            safety_manager = container.safety_manager
+            stored = safety_manager.get_stored_operation(confirmation_id)
+            if stored is None:
+                raise ConfirmationRequiredError(
+                    f"Confirmation ID '{confirmation_id}' not found or expired. "
+                    "Re-run the delete operation to receive a new confirmation ID."
+                )
+            tool_name, kwargs = stored if isinstance(stored, tuple) else (stored, {})
+            return await getattr(self, tool_name)(container, **kwargs)
 
     async def retrieve_logs(
         self,
@@ -297,6 +306,33 @@ class FeatureManager:
 
     # ── Meta Marketing API helpers ─────────────────────────────────────────────
 
+    def _meta_safety_check(self, container: "ServicesContainer", tool_name: str, **kwargs: Any) -> None:
+        """Validate that the Meta operation is permitted under the current safety mode.
+
+        For HIGH-risk operations the safety_manager stores ``(tool_name, kwargs)``
+        so that ``confirm_destructive_operation`` can replay the call with the
+        original arguments after the user confirms.
+        """
+        from supabase_mcp.exceptions import ConfirmationRequiredError as _CRE
+
+        safety_manager = container.safety_manager
+        operation = (tool_name, kwargs) if kwargs else tool_name
+        try:
+            safety_manager.validate_operation(ClientType.META, operation)
+        except _CRE as exc:
+            # Replace the generic SQL-centric message with a Meta-specific one.
+            # The confirmation ID is embedded between 'ID: ' and the newline.
+            import re as _re
+            m = _re.search(r"ID: (\S+)", str(exc))
+            conf_id = m.group(1) if m else "?"
+            raise _CRE(
+                f"Operation '{tool_name}' is destructive and requires explicit user confirmation.\n\n"
+                f"WHAT HAPPENED: This high-risk Meta Ads operation was rejected for safety reasons.\n"
+                f"WHAT TO DO: Review the operation with the user. If approved, run:\n\n"
+                f'  confirm_destructive_operation(operation_type="meta", '
+                f'confirmation_id="{conf_id}", user_confirmation=True)'
+            ) from None
+
     def _meta_manager(self, container: "ServicesContainer") -> Any:
         """Return the MetaAdsCampaignManager from the container."""
         from supabase_mcp.exceptions import APIClientError
@@ -324,6 +360,7 @@ class FeatureManager:
         return await self._meta_manager(container).get_campaign(campaign_id)
 
     async def meta_create_campaign(self, container: "ServicesContainer", campaign: dict[str, Any]) -> dict[str, Any]:
+        self._meta_safety_check(container, "meta_create_campaign")
         from supabase_mcp.services.meta_ads.models import CreateCampaignRequest
 
         return await self._meta_manager(container).create_campaign(CreateCampaignRequest(**campaign))
@@ -331,16 +368,19 @@ class FeatureManager:
     async def meta_update_campaign(
         self, container: "ServicesContainer", campaign_id: str, updates: dict[str, Any]
     ) -> dict[str, Any]:
+        self._meta_safety_check(container, "meta_update_campaign")
         from supabase_mcp.services.meta_ads.models import UpdateCampaignRequest
 
         return await self._meta_manager(container).update_campaign(campaign_id, UpdateCampaignRequest(**updates))
 
     async def meta_delete_campaign(self, container: "ServicesContainer", campaign_id: str) -> dict[str, Any]:
+        self._meta_safety_check(container, "meta_delete_campaign", campaign_id=campaign_id)
         return await self._meta_manager(container).delete_campaign(campaign_id)
 
     async def meta_toggle_campaign(
         self, container: "ServicesContainer", campaign_id: str, active: bool
     ) -> dict[str, Any]:
+        self._meta_safety_check(container, "meta_toggle_campaign")
         return await self._meta_manager(container).toggle_campaign(campaign_id, active)
 
     async def meta_list_adsets(
@@ -352,6 +392,7 @@ class FeatureManager:
         return await self._meta_manager(container).get_adset(adset_id)
 
     async def meta_create_adset(self, container: "ServicesContainer", adset: dict[str, Any]) -> dict[str, Any]:
+        self._meta_safety_check(container, "meta_create_adset")
         from supabase_mcp.services.meta_ads.models import CreateAdSetRequest
 
         return await self._meta_manager(container).create_adset(CreateAdSetRequest(**adset))
@@ -359,9 +400,11 @@ class FeatureManager:
     async def meta_update_adset(
         self, container: "ServicesContainer", adset_id: str, updates: dict[str, Any]
     ) -> dict[str, Any]:
+        self._meta_safety_check(container, "meta_update_adset")
         return await self._meta_manager(container).update_adset(adset_id, updates)
 
     async def meta_delete_adset(self, container: "ServicesContainer", adset_id: str) -> dict[str, Any]:
+        self._meta_safety_check(container, "meta_delete_adset", adset_id=adset_id)
         return await self._meta_manager(container).delete_adset(adset_id)
 
     async def meta_list_ads(
@@ -373,6 +416,7 @@ class FeatureManager:
         return await self._meta_manager(container).get_ad(ad_id)
 
     async def meta_create_ad(self, container: "ServicesContainer", ad: dict[str, Any]) -> dict[str, Any]:
+        self._meta_safety_check(container, "meta_create_ad")
         from supabase_mcp.services.meta_ads.models import CreateAdRequest
 
         return await self._meta_manager(container).create_ad(CreateAdRequest(**ad))
@@ -380,9 +424,11 @@ class FeatureManager:
     async def meta_update_ad(
         self, container: "ServicesContainer", ad_id: str, updates: dict[str, Any]
     ) -> dict[str, Any]:
+        self._meta_safety_check(container, "meta_update_ad")
         return await self._meta_manager(container).update_ad(ad_id, updates)
 
     async def meta_delete_ad(self, container: "ServicesContainer", ad_id: str) -> dict[str, Any]:
+        self._meta_safety_check(container, "meta_delete_ad", ad_id=ad_id)
         return await self._meta_manager(container).delete_ad(ad_id)
 
     async def meta_get_account_insights(
@@ -419,6 +465,7 @@ class FeatureManager:
     async def meta_create_creative(
         self, container: "ServicesContainer", creative_data: dict[str, Any]
     ) -> dict[str, Any]:
+        self._meta_safety_check(container, "meta_create_creative")
         return await self._meta_manager(container).create_creative(creative_data)
 
     async def meta_exchange_token(

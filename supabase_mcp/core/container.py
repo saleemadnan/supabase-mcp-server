@@ -93,6 +93,8 @@ class ServicesContainer:
                 access_token=settings.meta_access_token,
                 app_id=settings.meta_app_id,
                 app_secret=settings.meta_app_secret,
+                api_version=settings.meta_api_version,
+                timeout=settings.meta_request_timeout,
             )
             if settings.meta_ad_account_id:
                 self.meta_ads_manager = MetaAdsCampaignManager.get_instance(

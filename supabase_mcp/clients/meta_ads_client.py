@@ -10,8 +10,7 @@ from supabase_mcp.clients.base_http_client import AsyncHTTPClient
 from supabase_mcp.exceptions import APIClientError, APIConnectionError
 from supabase_mcp.logger import logger
 
-META_GRAPH_API_VERSION = "v19.0"
-META_GRAPH_API_BASE = f"https://graph.facebook.com/{META_GRAPH_API_VERSION}"
+META_GRAPH_API_BASE = "https://graph.facebook.com"
 
 
 class MetaAdsClient(AsyncHTTPClient):
@@ -19,16 +18,32 @@ class MetaAdsClient(AsyncHTTPClient):
 
     _instance: MetaAdsClient | None = None
 
-    def __init__(self, access_token: str, app_id: str, app_secret: str) -> None:
+    def __init__(
+        self,
+        access_token: str,
+        app_id: str,
+        app_secret: str,
+        api_version: str = "v21.0",
+        timeout: float = 30.0,
+    ) -> None:
         self._access_token = access_token
         self._app_id = app_id
         self._app_secret = app_secret
+        self._api_version = api_version
+        self._timeout = timeout
         self._client: httpx.AsyncClient | None = None
 
     @classmethod
-    def get_instance(cls, access_token: str, app_id: str, app_secret: str) -> MetaAdsClient:
+    def get_instance(
+        cls,
+        access_token: str,
+        app_id: str,
+        app_secret: str,
+        api_version: str = "v21.0",
+        timeout: float = 30.0,
+    ) -> MetaAdsClient:
         if cls._instance is None:
-            cls._instance = cls(access_token, app_id, app_secret)
+            cls._instance = cls(access_token, app_id, app_secret, api_version=api_version, timeout=timeout)
         return cls._instance
 
     @classmethod
@@ -38,8 +53,8 @@ class MetaAdsClient(AsyncHTTPClient):
     async def _ensure_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
             self._client = httpx.AsyncClient(
-                base_url=META_GRAPH_API_BASE,
-                timeout=30.0,
+                base_url=f"{META_GRAPH_API_BASE}/{self._api_version}",
+                timeout=self._timeout,
             )
         return self._client
 
@@ -83,7 +98,7 @@ class MetaAdsClient(AsyncHTTPClient):
         except (APIClientError, APIConnectionError):
             raise
         except Exception as e:
-            raise APIClientError(message=f"Token exchange failed: {e}", status_code=None) from e
+            raise APIClientError(message="Token exchange failed", status_code=None) from e
 
     async def get_app_token(self) -> dict[str, Any]:
         """Get an app-level access token."""
