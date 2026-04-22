@@ -1,5 +1,18 @@
 # Meta Marketing API tool descriptions
 
+meta_list_linked_accounts: |
+  List all Meta ad accounts that are linked to this integration.
+
+  Returns account IDs and names for all configured ad accounts.
+  Use the account_id from this list when calling other Meta tools to target
+  a specific account.
+
+  Currently linked accounts:
+  - طعم ابوغزالة  (act_1198372168168124)
+  - Yazan Ali      (act_968620118865243)
+
+  SAFETY: Read-only operation.
+
 meta_get_account_info: |
   Get information about the Meta ad account.
 

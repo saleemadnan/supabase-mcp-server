@@ -38,6 +38,7 @@ class ServicesContainer:
         feature_manager: FeatureManager | None = None,
         meta_ads_client: MetaAdsClient | None = None,
         meta_ads_manager: MetaAdsCampaignManager | None = None,
+        meta_ads_managers: dict[str, MetaAdsCampaignManager] | None = None,
     ) -> None:
         """Create a new container container reference"""
         self.postgres_client = postgres_client
@@ -52,7 +53,10 @@ class ServicesContainer:
         self.feature_manager = feature_manager
         self.mcp_server = mcp_server
         self.meta_ads_client = meta_ads_client
+        # Single manager (primary account) — kept for backwards compat
         self.meta_ads_manager = meta_ads_manager
+        # Dict of all linked account managers: {"act_xxx": MetaAdsCampaignManager}
+        self.meta_ads_managers: dict[str, MetaAdsCampaignManager] = meta_ads_managers or {}
 
     @classmethod
     def get_instance(cls) -> ServicesContainer:
@@ -96,14 +100,26 @@ class ServicesContainer:
                 api_version=settings.meta_api_version,
                 timeout=settings.meta_request_timeout,
             )
-            if settings.meta_ad_account_id:
-                self.meta_ads_manager = MetaAdsCampaignManager.get_instance(
-                    client=self.meta_ads_client,
-                    ad_account_id=settings.meta_ad_account_id,
+            account_ids = settings.get_meta_account_ids()
+            if account_ids:
+                self.meta_ads_managers = {}
+                for aid in account_ids:
+                    self.meta_ads_managers[aid] = MetaAdsCampaignManager(
+                        client=self.meta_ads_client,
+                        ad_account_id=aid,
+                    )
+                # Primary manager = first account
+                self.meta_ads_manager = self.meta_ads_managers[account_ids[0]]
+                names = {
+                    "act_1198372168168124": "طعم ابوغزالة",
+                    "act_968620118865243": "Yazan Ali",
+                }
+                linked = ", ".join(
+                    f"{names.get(a, a)} ({a})" for a in account_ids
                 )
-                logger.info("✓ Meta Ads integration initialized.")
+                logger.info(f"✓ Meta Ads integration initialised — linked accounts: {linked}")
             else:
-                logger.warning("META_AD_ACCOUNT_ID not set — Meta campaign tools will be unavailable.")
+                logger.warning("No META_AD_ACCOUNT_ID(S) set — Meta campaign tools will be unavailable.")
         else:
             logger.info("Meta Ads credentials not configured — Meta tools will be skipped.")
 

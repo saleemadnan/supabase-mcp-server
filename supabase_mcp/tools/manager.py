@@ -34,6 +34,7 @@ class ToolName(str, Enum):
     RETRIEVE_LOGS = "retrieve_logs"
 
     # Meta Marketing API tools
+    META_LIST_LINKED_ACCOUNTS = "meta_list_linked_accounts"
     META_GET_ACCOUNT_INFO = "meta_get_account_info"
     META_LIST_CAMPAIGNS = "meta_list_campaigns"
     META_GET_CAMPAIGN = "meta_get_campaign"

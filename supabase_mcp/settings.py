@@ -126,8 +126,13 @@ class Settings(BaseSettings):
     )
     meta_ad_account_id: str | None = Field(
         default=None,
-        description="Meta Ad Account ID (numeric, e.g. 123456789 or act_123456789)",
+        description="Primary Meta Ad Account ID (e.g. act_123456789). Used as default when account_id is not specified.",
         alias="META_AD_ACCOUNT_ID",
+    )
+    meta_ad_account_ids: str | None = Field(
+        default=None,
+        description="Comma-separated list of all linked Meta Ad Account IDs (e.g. act_111,act_222)",
+        alias="META_AD_ACCOUNT_IDS",
     )
     meta_api_version: str = Field(
         default="v21.0",
@@ -139,6 +144,22 @@ class Settings(BaseSettings):
         description="Timeout in seconds for Meta API requests",
         alias="META_REQUEST_TIMEOUT",
     )
+
+    def get_meta_account_ids(self) -> list[str]:
+        """Return all configured Meta ad account IDs with act_ prefix."""
+        raw = self.meta_ad_account_ids or self.meta_ad_account_id or ""
+        ids: list[str] = []
+        for part in raw.split(","):
+            part = part.strip()
+            if part:
+                ids.append(part if part.startswith("act_") else f"act_{part}")
+        seen: set[str] = set()
+        result: list[str] = []
+        for aid in ids:
+            if aid not in seen:
+                seen.add(aid)
+                result.append(aid)
+        return result
 
     @field_validator("supabase_region")
     @classmethod
