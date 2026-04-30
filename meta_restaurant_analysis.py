@@ -2,8 +2,9 @@
 تحليل حساب طعم ابوغزالة الإعلاني وإنشاء هيكل الحملات المقترح.
 
 الاستخدام:
-    python meta_restaurant_analysis.py            # تحليل فقط
-    python meta_restaurant_analysis.py --create   # تحليل + إنشاء الحملات المقترحة
+    python meta_restaurant_analysis.py                   # تحليل فقط
+    python meta_restaurant_analysis.py --create          # تحليل + إنشاء الحملات المقترحة
+    python meta_restaurant_analysis.py --refresh-token   # تجديد الرمز (60 يوم) وحفظه في .env
 """
 
 from __future__ import annotations
@@ -83,30 +84,126 @@ def subsection(title: str) -> None:
 
 # ── API client ────────────────────────────────────────────────────────────────
 
+def _parse_response(r: httpx.Response) -> dict:
+    ct = r.headers.get("content-type", "")
+    if "application/json" in ct:
+        try:
+            return r.json()
+        except Exception:
+            pass
+    return {}
+
+
+def _handle_api_error(method: str, path: str, r: httpx.Response, data: dict) -> None:
+    err  = data.get("error", {})
+    msg  = err.get("message") or r.text[:300]
+    code = err.get("code", r.status_code)
+    sub  = err.get("error_subcode", "")
+    label = f"[{code}/{sub}]" if sub else f"[{code}]"
+    print(f"  {RED}{method} {path} → API Error {label}: {msg}{RESET}")
+    # Token-related errors
+    if code in (190, 102, 104) or any(k in msg.lower() for k in ("expired", "invalid", "session")):
+        print(f"  {YELLOW}  ↳ رمز الوصول منتهي أو غير صالح.")
+        print(f"    شغّل:  python meta_restaurant_analysis.py --refresh-token{RESET}")
+    # Permissions error
+    elif code in (10, 200, 294) or "permission" in msg.lower():
+        print(f"  {YELLOW}  ↳ صلاحية مفقودة — تأكد من وجود: ads_management, ads_read, business_management{RESET}")
+    # Rate limit
+    elif code in (4, 17, 32, 613):
+        print(f"  {YELLOW}  ↳ تجاوزت حد الطلبات — انتظر دقيقة ثم أعد المحاولة{RESET}")
+
+
 async def api_get(client: httpx.AsyncClient, path: str, params: dict | None = None) -> dict:
     merged = {"access_token": ACCESS_TOKEN, **(params or {})}
-    r = await client.get(f"{BASE_URL}/{path.lstrip('/')}", params=merged)
-    data = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
-    if "error" in data:
-        err = data["error"]
-        print(f"  {RED}API error on {path}: {err.get('message', err)}{RESET}")
+    try:
+        r = await client.get(f"{BASE_URL}/{path.lstrip('/')}", params=merged)
+    except httpx.RequestError as exc:
+        print(f"  {RED}Network error on GET {path}: {exc}{RESET}")
+        return {}
+    data = _parse_response(r)
+    if not r.is_success or "error" in data:
+        _handle_api_error("GET", path, r, data)
         return {}
     return data
 
 
 async def api_post(client: httpx.AsyncClient, path: str, body: dict) -> dict:
-    body["access_token"] = ACCESS_TOKEN
-    r = await client.post(
-        f"{BASE_URL}/{path.lstrip('/')}",
-        data={k: (json.dumps(v) if isinstance(v, (dict, list)) else str(v)) for k, v in body.items()},
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-    )
-    data = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
-    if "error" in data:
-        err = data["error"]
-        print(f"  {RED}API error on POST {path}: {err.get('message', err)}{RESET}")
+    payload = {k: (json.dumps(v) if isinstance(v, (dict, list)) else str(v)) for k, v in body.items()}
+    payload["access_token"] = ACCESS_TOKEN
+    try:
+        r = await client.post(
+            f"{BASE_URL}/{path.lstrip('/')}",
+            data=payload,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+    except httpx.RequestError as exc:
+        print(f"  {RED}Network error on POST {path}: {exc}{RESET}")
+        return {}
+    data = _parse_response(r)
+    if not r.is_success or "error" in data:
+        _handle_api_error("POST", path, r, data)
         return {}
     return data
+
+
+async def validate_token(client: httpx.AsyncClient) -> bool:
+    """Quick token check — returns True if valid."""
+    print(f"  {YELLOW}التحقق من صلاحية الرمز...{RESET}", end=" ", flush=True)
+    result = await api_get(client, "/me", {"fields": "id,name"})
+    if result:
+        print(f"{GREEN}✓ صالح ({result.get('name', result.get('id'))}){RESET}")
+        return True
+    return False
+
+
+async def refresh_token_cmd() -> None:
+    """Exchange the current short-lived token for a 60-day long-lived token."""
+    if not APP_SECRET:
+        print(f"{RED}خطأ: META_APP_SECRET غير محدد في .env{RESET}")
+        sys.exit(1)
+
+    print(f"\n{YELLOW}جارٍ تجديد رمز الوصول...{RESET}")
+    url = f"{BASE_URL}/oauth/access_token"
+    params = {
+        "grant_type":       "fb_exchange_token",
+        "client_id":        APP_ID,
+        "client_secret":    APP_SECRET,
+        "fb_exchange_token": ACCESS_TOKEN,
+    }
+    async with httpx.AsyncClient(timeout=20) as client:
+        try:
+            r = await client.get(url, params=params)
+        except httpx.RequestError as exc:
+            print(f"{RED}Network error: {exc}{RESET}")
+            sys.exit(1)
+
+        data = _parse_response(r)
+        if not r.is_success or "error" in data:
+            _handle_api_error("GET", "/oauth/access_token", r, data)
+            sys.exit(1)
+
+        new_token    = data.get("access_token", "")
+        expires_in   = data.get("expires_in", 0)
+        expires_days = int(expires_in) // 86400 if expires_in else "?"
+
+        if not new_token:
+            print(f"{RED}لم يُعَد رمز جديد — تحقق من APP_ID و APP_SECRET{RESET}")
+            sys.exit(1)
+
+        # Update .env in place
+        env_path = Path(__file__).parent / ".env"
+        if env_path.exists():
+            text = env_path.read_text()
+            import re
+            text = re.sub(r"^META_ACCESS_TOKEN=.*$", f"META_ACCESS_TOKEN={new_token}", text, flags=re.MULTILINE)
+            env_path.write_text(text)
+            print(f"{GREEN}✓ تم حفظ الرمز الجديد في .env (صالح لـ {expires_days} يوم){RESET}")
+        else:
+            print(f"{GREEN}✓ الرمز الجديد:{RESET}")
+            print(f"  META_ACCESS_TOKEN={new_token}")
+            print(f"  (صالح لـ {expires_days} يوم — أضفه يدوياً لـ .env)")
+
+        print(f"\n{YELLOW}شغّل السكريبت مجدداً لرؤية التحليل الكامل.{RESET}\n")
 
 
 # ── data collection ───────────────────────────────────────────────────────────
@@ -533,9 +630,14 @@ async def create_campaigns(client: httpx.AsyncClient) -> None:
 async def main(create: bool = False) -> None:
     if not ACCESS_TOKEN:
         print(f"{RED}خطأ: META_ACCESS_TOKEN غير محدد في ملف .env{RESET}")
+        print(f"{YELLOW}شغّل أولاً: python meta_restaurant_analysis.py --refresh-token{RESET}")
         sys.exit(1)
 
     async with httpx.AsyncClient(timeout=30) as client:
+        # Validate token before doing anything else
+        if not await validate_token(client):
+            sys.exit(1)
+
         data = await collect_all(client)
         print_report(data)
 
@@ -550,6 +652,11 @@ async def main(create: bool = False) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Meta Restaurant Ads Analyzer")
-    parser.add_argument("--create", action="store_true", help="Create recommended campaign structure after analysis")
+    parser.add_argument("--create",        action="store_true", help="Create recommended campaign structure after analysis")
+    parser.add_argument("--refresh-token", action="store_true", help="Exchange short-lived token for 60-day long-lived token")
     args = parser.parse_args()
-    asyncio.run(main(create=args.create))
+
+    if args.refresh_token:
+        asyncio.run(refresh_token_cmd())
+    else:
+        asyncio.run(main(create=args.create))
