@@ -13,6 +13,7 @@ import argparse
 import asyncio
 import json
 import os
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -158,6 +159,9 @@ async def validate_token(client: httpx.AsyncClient) -> bool:
 
 async def refresh_token_cmd() -> None:
     """Exchange the current short-lived token for a 60-day long-lived token."""
+    if not ACCESS_TOKEN:
+        print(f"{RED}خطأ: META_ACCESS_TOKEN فارغ في .env — أضف رمزاً قصير المدى أولاً{RESET}")
+        sys.exit(1)
     if not APP_SECRET:
         print(f"{RED}خطأ: META_APP_SECRET غير محدد في .env{RESET}")
         sys.exit(1)
@@ -194,7 +198,6 @@ async def refresh_token_cmd() -> None:
         env_path = Path(__file__).parent / ".env"
         if env_path.exists():
             text = env_path.read_text()
-            import re
             text = re.sub(r"^META_ACCESS_TOKEN=.*$", f"META_ACCESS_TOKEN={new_token}", text, flags=re.MULTILINE)
             env_path.write_text(text)
             print(f"{GREEN}✓ تم حفظ الرمز الجديد في .env (صالح لـ {expires_days} يوم){RESET}")
@@ -404,7 +407,6 @@ def print_report(data: dict) -> dict:
                 by_age[age]["female"] += sp
 
         for age_g, vals in sorted(by_age.items()):
-            total = vals["male"] + vals["female"]
             avg_ctr = vals["total_ctr"] / max(vals["count"], 1)
             print(f"  {age_g:8}  ذكور: {vals['male']:6.0f}  إناث: {vals['female']:6.0f}  CTR: {avg_ctr:.2f}%")
     else:
