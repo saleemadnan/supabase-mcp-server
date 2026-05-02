@@ -77,3 +77,40 @@ class TestSQLSafetyConfig:
 
         # Extreme risk operations should need confirmation
         assert config.needs_confirmation(OperationRiskLevel.EXTREME) is True
+
+    def test_classify_statement_known_type(self):
+        """Test classify_statement returns correct config for known statement types."""
+        config = SQLSafetyConfig()
+
+        result = config.classify_statement("SelectStmt", None)
+        assert result["risk_level"] == OperationRiskLevel.LOW
+
+        result = config.classify_statement("InsertStmt", None)
+        assert result["risk_level"] == OperationRiskLevel.MEDIUM
+
+        result = config.classify_statement("DropStmt", None)
+        assert result["risk_level"] == OperationRiskLevel.HIGH
+
+    def test_classify_statement_unknown_type_defaults_medium(self):
+        """Test classify_statement defaults to MEDIUM risk for unknown statement types."""
+        config = SQLSafetyConfig()
+        result = config.classify_statement("UnknownStmt", None)
+        assert result["risk_level"] == OperationRiskLevel.MEDIUM
+
+    def test_classify_statement_copy_to_is_low_risk(self):
+        """Test that COPY TO (export) is classified as LOW risk."""
+        config = SQLSafetyConfig()
+        stmt_node = MagicMock()
+        stmt_node.is_from = False  # COPY TO
+
+        result = config.classify_statement("CopyStmt", stmt_node)
+        assert result["risk_level"] == OperationRiskLevel.LOW
+
+    def test_classify_statement_copy_from_is_medium_risk(self):
+        """Test that COPY FROM (import) is classified as MEDIUM risk."""
+        config = SQLSafetyConfig()
+        stmt_node = MagicMock()
+        stmt_node.is_from = True  # COPY FROM
+
+        result = config.classify_statement("CopyStmt", stmt_node)
+        assert result["risk_level"] == OperationRiskLevel.MEDIUM
