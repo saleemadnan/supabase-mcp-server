@@ -9,7 +9,7 @@ from supabase_mcp.logger import logger
 
 
 class ToolName(str, Enum):
-    """Enum of all available tools in the Supabase MCP server."""
+    """Enum of all available tools in the Supabase MCPh server."""
 
     # Database tools
     GET_SCHEMAS = "get_schemas"
@@ -32,6 +32,9 @@ class ToolName(str, Enum):
 
     # Logs & Analytics tools
     RETRIEVE_LOGS = "retrieve_logs"
+
+    # Auth status tool
+    GET_AUTH_STATUS = "get_auth_status"
 
 
 class ToolManager:
