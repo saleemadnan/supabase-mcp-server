@@ -2,8 +2,8 @@
 name: Roadmap Item (only for maintainers)
 about: Reserved for maintainers, used to track roadmap items
 title: "[target version] Brief description of the feature"
-labels: roadmap
-assignees: alexander-zuev
+labels: ''
+assignees: ''
 
 ---
 

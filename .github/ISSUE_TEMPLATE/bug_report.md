@@ -1,9 +1,9 @@
 ---
 name: Bug Report
 about: Report an issue with the Supabase MCP server
-title: "An issue with doing X when Y under conditions Z"
+title: An issue with doing X when Y under conditions Z
 labels: bug
-assignees: alexander-zuev
+assignees: ''
 
 ---
 
