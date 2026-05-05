@@ -24,15 +24,33 @@ jobs:
     name: SonarQube scan
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ secrets.SONAR_TOKEN != '' && secrets.SONAR_HOST_URL != '' }}
 
     steps:
+      - name: Check SonarQube secrets
+        id: sonar-secrets
+        shell: bash
+        run: |
+          if [ -n "${{ secrets.SONAR_TOKEN }}" ] && [ -n "${{ secrets.SONAR_HOST_URL }}" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "SonarQube secrets are not configured. Skipping scan without failing the workflow."
+          fi
+
       - name: Checkout repository
+        if: steps.sonar-secrets.outputs.configured == 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up uv
+      - name: Set up Python 3.12
+        if: steps.sonar-secrets.outputs.configured == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        if: steps.sonar-secrets.outputs.configured == 'true'
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
@@ -40,16 +58,16 @@ jobs:
             uv.lock
             pyproject.toml
 
-      - name: Set up Python
-        run: uv python install 3.12
-
       - name: Install dependencies
+        if: steps.sonar-secrets.outputs.configured == 'true'
         run: uv sync --group dev
 
       - name: Generate coverage report
-        run: uv run pytest -m "not integration" --tb=short --cov=supabase_mcp --cov-report=xml
+        if: steps.sonar-secrets.outputs.configured == 'true'
+        run: uv run python -m pytest -m "not integration" --tb=short -q --cov=supabase_mcp --cov-report=xml
 
       - name: Run SonarQube scan
+        if: steps.sonar-secrets.outputs.configured == 'true'
         uses: SonarSource/sonarqube-scan-action@v5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
