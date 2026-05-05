@@ -106,7 +106,7 @@ class TestToolManager:
         ToolManager._instance = None  # type: ignore
 
     def test_all_tool_names_have_descriptions(self):
-        """Test that all tools defined in ToolName enum have descriptions."""
+        """Test that every ToolName enum member has a non-empty description."""
         # Setup - get a fresh instance
         # Reset the singleton first to ensure we get a clean instance
         # pylint: disable=protected-access
@@ -114,9 +114,6 @@ class TestToolManager:
 
         # Get a fresh instance that will load the real YAML files
         manager = ToolManager.get_instance()
-
-        # Print the loaded descriptions for debugging
-        print(f"\nLoaded descriptions: {manager.descriptions}")
 
         # Verify that we have at least some descriptions loaded
         assert len(manager.descriptions) > 0, "No descriptions were loaded"
@@ -130,23 +127,9 @@ class TestToolManager:
         # Fail if we found any empty descriptions
         assert len(empty_descriptions) == 0, f"Found empty descriptions for tools: {empty_descriptions}"
 
-        # Check that at least some of the tool names have descriptions
-        found_descriptions = 0
-        missing_descriptions: list[str] = []
-
-        for tool_name in ToolName:
-            description = manager.get_description(tool_name.value)
-            if description:
-                found_descriptions += 1
-            else:
-                missing_descriptions.append(tool_name.value)
-
-        # Print missing descriptions for debugging
-        if missing_descriptions:
-            print(f"\nMissing descriptions for: {missing_descriptions}")
-
-        # We should have at least some descriptions
-        assert found_descriptions > 0, "No tool has a description"
+        # Check that every ToolName enum value has a description.
+        missing_descriptions = [tool_name.value for tool_name in ToolName if not manager.get_description(tool_name.value)]
+        assert not missing_descriptions, f"Missing descriptions for tools: {missing_descriptions}"
 
         # Reset the singleton for other tests
         # pylint: disable=protected-access
@@ -167,16 +150,16 @@ class TestToolManager:
         ToolManager._instance = None  # type: ignore
 
     def test_tool_enum_completeness(self):
-        """Test that the ToolName enum contains all expected tools."""
+        """Test that ToolName enum contains unique values and required core tools."""
         # Get all tool values from the enum
         tool_values = [tool.value for tool in ToolName]
 
-        # Verify the total number of tools matches the live enum size
-        expected_tool_count = len(ToolName)
-        assert len(tool_values) == expected_tool_count, f"Expected {expected_tool_count} tools, got {len(tool_values)}"
+        # Verify enum values are unique. Keep the count dynamic so new tools do not break this test.
+        assert len(tool_values) == len(set(tool_values)), "ToolName enum contains duplicate values"
 
         # Verify specific tools are included
         assert "retrieve_logs" in tool_values, "retrieve_logs tool is missing from ToolName enum"
+        assert "meta_list_linked_accounts" in tool_values, "Meta tools are missing from ToolName enum"
 
         # Reset the singleton for other tests
         # pylint: disable=protected-access
