@@ -1,0 +1,56 @@
+name: SonarQube
+
+on:
+  push:
+    branches:
+      - main
+      - refactor/misc
+  pull_request:
+    branches:
+      - main
+      - refactor/misc
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: sonar-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sonar:
+    name: SonarQube scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: ${{ secrets.SONAR_TOKEN != '' && secrets.SONAR_HOST_URL != '' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            pyproject.toml
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --group dev
+
+      - name: Generate coverage report
+        run: uv run pytest -m "not integration" --tb=short --cov=supabase_mcp --cov-report=xml
+
+      - name: Run SonarQube scan
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
