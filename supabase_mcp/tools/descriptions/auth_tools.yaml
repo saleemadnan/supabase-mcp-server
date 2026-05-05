@@ -1,0 +1,15 @@
+get_auth_status: |
+  Returns the current authentication configuration state of the server.
+
+    Reports which credentials are configured and whether connections are healthy.
+      This tool is read-only and safe to call at any time.
+
+        Returns a structured response with:
+          - personal_access_token: configured / missing
+            - service_role_key: configured / missing
+              - supabase_url: configured / missing
+                - db_url: configured / missing
+                  - api_connection: healthy / unreachable
+                    - db_connection: healthy / unreachable
+
+                      Use this tool to debug connection issues or verify which credentials are active.
