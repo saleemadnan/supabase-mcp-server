@@ -18,7 +18,7 @@ dependencies = [
     "tenacity>=9.0.0",
 ]
 authors = [
-    {name = "Alexander Zuev", email = "azuev@outlook.com"}
+    {name = "Alexander Zuev", email = "azuev@outlook.com"},
 ]
 keywords = ["supabase", "mcp", "cursor", "windsurf", "model-context-protocol", "claude", "cline"]
 license = "Apache-2.0"
@@ -37,7 +37,9 @@ Repository = "https://github.com/alexander-zuev/supabase-mcp-server.git"
 Changelog = "https://github.com/alexander-zuev/supabase-mcp-server/blob/main/CHANGELOG.MD"
 Documentation = "https://github.com/alexander-zuev/supabase-mcp-server#readme"
 
-
+[project.scripts]
+supabase-mcp-server = "supabase_mcp.main:run_server"
+supabase-mcp-inspector = "supabase_mcp.main:run_inspector"
 
 [tool.hatch.build.targets.wheel]
 packages = ["supabase_mcp"]
@@ -45,23 +47,18 @@ packages = ["supabase_mcp"]
 [tool.uv]
 package = true
 
+# Configure PyPI publishing
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple/"
+publish-url = "https://upload.pypi.org/legacy/"
+
 [tool.hatch.version]
 source = "vcs"
 raw-options = { version_scheme = "no-guess-dev" }
 
 [tool.hatch.build.hooks.vcs]
 version-file = "supabase_mcp/_version.py"
-
-[project.scripts]
-supabase-mcp-server = "supabase_mcp.main:run_server"
-supabase-mcp-inspector = "supabase_mcp.main:run_inspector"
-
-
-# Configure PyPI publishing
-[[tool.uv.index]]
-name = "pypi"
-url = "https://pypi.org/simple/"
-publish-url = "https://upload.pypi.org/legacy/"
 
 [tool.ruff]
 target-version = "py312"
@@ -82,7 +79,6 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
-
 
 [tool.mypy]
 python_version = "3.12"
@@ -113,13 +109,12 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --no-header --tb=short"
+addopts = "-v --no-header --tb=short -m 'not integration'"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "module"
-
 markers = [
     "unit: marks a test as a unit test",
-    "integration: marks a test as an integration test that requires database access"
+    "integration: marks a test as an integration test that requires database access",
 ]
 
 [dependency-groups]
@@ -133,7 +128,6 @@ dev = [
     "ruff>=0.9.9",
     "sqlfluff>=3.3.1",
 ]
-
 
 [tool.sqlfluff.core]
 dialect = "postgres"
@@ -158,5 +152,5 @@ exclude_rules = [
     "AL01",  # Aliasing of table
     "AM05",  # Join clauses should be fully qualified
     "ST09",  # Join order
-    "CP03"   # Function name capitalization
+    "CP03",  # Function name capitalization
 ]
