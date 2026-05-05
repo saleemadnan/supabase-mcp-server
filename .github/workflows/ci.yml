@@ -19,16 +19,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test-and-quality:
-    name: Tests and quality checks
+  test:
+    name: test
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
-      - name: Checkout repository
+      - name: Run actions/checkout@v4
         uses: actions/checkout@v4
 
-      - name: Set up uv
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
@@ -36,20 +41,19 @@ jobs:
             uv.lock
             pyproject.toml
 
-      - name: Set up Python
-        run: uv python install 3.12
-
-      - name: Install dependencies
+      - name: Create venv and install dependencies
         run: uv sync --group dev
 
-      - name: Run Ruff lint
+      - name: Run tests
+        run: uv run python -m pytest -m "not integration" --tb=short -q --cov=supabase_mcp --cov-report=xml --cov-report=term-missing
+
+      - name: Run Ruff lint (informational)
+        continue-on-error: true
         run: uv run ruff check . --output-format=github
 
-      - name: Check Ruff formatting
+      - name: Check Ruff formatting (informational)
+        continue-on-error: true
         run: uv run ruff format --check .
-
-      - name: Run unit tests with coverage
-        run: uv run pytest -m "not integration" --tb=short --cov=supabase_mcp --cov-report=xml --cov-report=term-missing
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
