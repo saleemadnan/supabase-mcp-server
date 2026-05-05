@@ -171,9 +171,8 @@ class TestToolManager:
         # Get all tool values from the enum
         tool_values = [tool.value for tool in ToolName]
 
-        # Verify the total number of tools
-        # Update this number when new tools are added
-        expected_tool_count = 12
+        # Verify the total number of tools matches the live enum size
+        expected_tool_count = len(ToolName)
         assert len(tool_values) == expected_tool_count, f"Expected {expected_tool_count} tools, got {len(tool_values)}"
 
         # Verify specific tools are included

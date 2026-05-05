@@ -82,8 +82,9 @@ class TestMain:
         registered_tools = asyncio.run(mcp.list_tools())
         registered_tool_names = {tool.name for tool in registered_tools}
 
-        # We should have exactly 12 tools (all the tools defined in ToolName enum)
-        assert len(registered_tools) == 12, f"Expected 12 tools, but got {len(registered_tools)}"
+        # Tool count grows as new integrations are added; check against live enum
+        expected_count = len(ToolName)
+        assert len(registered_tools) == expected_count, f"Expected {expected_count} tools, but got {len(registered_tools)}"
 
         # Log the actual number of tools for reference
         logger.info(f"Found {len(registered_tools)} MCP tools registered")
@@ -134,9 +135,9 @@ class TestMain:
         import os
         import shutil
 
-        # Skip this test in CI environments
-        if os.environ.get("CI") == "true":
-            pytest.skip("Skipping server command test in CI environment")
+        # Skip when running outside an installed environment
+        if os.environ.get("CI") == "true" or shutil.which("supabase-mcp-server") is None:
+            pytest.skip("supabase-mcp-server not installed in PATH — skipping")
 
         # Check if the command exists in PATH
         server_path = shutil.which("supabase-mcp-server")
