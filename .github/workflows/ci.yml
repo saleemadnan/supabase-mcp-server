@@ -23,6 +23,14 @@ jobs:
     name: test
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      # Unit-test-only placeholders. Integration tests remain excluded with -m "not integration".
+      SUPABASE_PROJECT_REF: abcdefghijklmnopqrst
+      SUPABASE_DB_PASSWORD: ci_dummy_password
+      SUPABASE_ACCESS_TOKEN: ci_dummy_access_token
+      SUPABASE_SERVICE_ROLE_KEY: ci_dummy_service_role_key
+      SUPABASE_URL: https://example.supabase.co
+      DATABASE_URL: postgresql://postgres:ci_dummy_password@db.abcdefghijklmnopqrst.supabase.co:5432/postgres
 
     steps:
       - name: Run actions/checkout@v4
