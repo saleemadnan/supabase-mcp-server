@@ -1,58 +1,17 @@
-name: CI
+name: CI Legacy
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
 
-
-env:
-  UV_VERSION: "0.6.1" # Pin uv version to avoid breaking changes
+permissions:
+  contents: read
 
 jobs:
   test:
+    name: legacy-test-disabled
     runs-on: ubuntu-latest
-    env:
-      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          version: ${{ env.UV_VERSION }}
-
-      - name: Create venv and install dependencies
+      - name: Legacy workflow disabled
         run: |
-          # Create venv and install dependencies
-          uv venv
-          source .venv/bin/activate
-          uv sync --group dev --frozen
-
-      - name: Run tests
-        run: |
-          source .venv/bin/activate # necessary for pytest
-          pytest --cov=supabase_mcp --cov-report=xml --cov-report=term
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage.xml
-          fail_ci_if_error: false
-
-      - name: Build distribution packages
-        run: |
-          uv build --no-sources
-          # Verify dist contains both wheel and tar.gz
-          test -f dist/*.whl
-          test -f dist/*.tar.gz
+          echo "This legacy CI workflow is intentionally disabled."
+          echo "Use .github/workflows/ci.yml for active CI checks."
