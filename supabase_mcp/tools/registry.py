@@ -185,12 +185,12 @@ class ToolRegistry:
                 custom_query=custom_query,
             )
 
-                @mcp.tool(description=tool_manager.get_description(ToolName.GET_AUTH_STATUS))  # type: ignore
-                    async def get_auth_status() -> dict[str, Any]:
-                                    """Returns the current authentication configuration state of the server."""
-                                    return await feature_manager.execute_tool(
-                                                        ToolName.GET_AUTH_STATUS,
-                                                        services_container=services_container,
-                                    )
+        @mcp.tool(description=tool_manager.get_description(ToolName.GET_AUTH_STATUS))  # type: ignore
+        async def get_auth_status() -> dict[str, Any]:
+            """Returns the current authentication configuration state of the server."""
+            return await feature_manager.execute_tool(
+                ToolName.GET_AUTH_STATUS,
+                services_container=services_container,
+            )
 
         return mcp
