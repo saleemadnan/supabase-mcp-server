@@ -1,4 +1,5 @@
 import asyncio
+import shutil
 from unittest.mock import patch
 
 import pytest
@@ -53,7 +54,7 @@ class TestMain:
 
     @pytest.mark.unit
     def test_tool_registration(self, tools_registry_integration: ServicesContainer):
-        """Test that tools are registered correctly using ToolManager's tool names."""
+        """Test that all ToolName enum members are registered as MCP tools."""
 
         # Get the tool manager from the container
         tool_manager = tools_registry_integration.tool_manager
@@ -62,29 +63,15 @@ class TestMain:
         # Get the MCP server from the container
         mcp = tools_registry_integration.mcp_server
 
-        # Get expected tools from ToolName enum
-        expected_tools = [
-            ToolName.GET_SCHEMAS,
-            ToolName.GET_TABLES,
-            ToolName.GET_TABLE_SCHEMA,
-            ToolName.EXECUTE_POSTGRESQL,
-            ToolName.CONFIRM_DESTRUCTIVE_OPERATION,
-            ToolName.RETRIEVE_MIGRATIONS,
-            ToolName.LIVE_DANGEROUSLY,
-            ToolName.SEND_MANAGEMENT_API_REQUEST,
-            ToolName.GET_MANAGEMENT_API_SPEC,
-            ToolName.GET_AUTH_ADMIN_METHODS_SPEC,
-            ToolName.CALL_AUTH_ADMIN_METHOD,
-            ToolName.RETRIEVE_LOGS,
-        ]
-
         # Verify tools are registered in MCP
         registered_tools = asyncio.run(mcp.list_tools())
         registered_tool_names = {tool.name for tool in registered_tools}
+        expected_tool_names = {tool_name.value for tool_name in ToolName}
 
-        # Tool count grows as new integrations are added; check against live enum
-        expected_count = len(ToolName)
-        assert len(registered_tools) == expected_count, f"Expected {expected_count} tools, but got {len(registered_tools)}"
+        # Keep this assertion dynamic so adding tools does not require updating a hard-coded count.
+        assert len(registered_tools) == len(expected_tool_names), (
+            f"Expected {len(expected_tool_names)} tools, but got {len(registered_tools)}"
+        )
 
         # Log the actual number of tools for reference
         logger.info(f"Found {len(registered_tools)} MCP tools registered")
@@ -95,18 +82,15 @@ class TestMain:
             assert tool.description, "Tool must have a description"
             assert tool.inputSchema, "Tool must have an input schema"
 
-        # Check that each expected tool is registered by its string value
-        for tool_name in expected_tools:
-            # Convert enum to string value (e.g., 'get_schemas' instead of ToolName.GET_SCHEMAS)
-            tool_str_value = str(tool_name.value)
-            assert tool_str_value in registered_tool_names, f"Tool {tool_name} not registered"
+        # Check that every ToolName enum value is registered by its string value.
+        missing_tools = sorted(expected_tool_names - registered_tool_names)
+        unexpected_tools = sorted(registered_tool_names - expected_tool_names)
 
-        # Verify we have tools for core functionality categories
-        # Instead of checking specific names, check for categories of functionality
-        tool_names = {tool.name for tool in registered_tools}
+        assert not missing_tools, f"Missing registered tools: {missing_tools}"
+        assert not unexpected_tools, f"Unexpected registered tools: {unexpected_tools}"
 
         # Log all available tools for debugging
-        tool_list = ", ".join(sorted(tool_names))
+        tool_list = ", ".join(sorted(registered_tool_names))
         logger.info(f"Available MCP tools: {tool_list}")
 
     @pytest.mark.unit
@@ -120,7 +104,7 @@ class TestMain:
 
     @pytest.mark.unit
     def test_inspector_mode(self):
-        """Test that inspector mode initializes correctly"""
+        """Test that inspector mode initializes correctly."""
         # This test is fine as is since it's testing the global function
         # and mocking an external dependency
         with patch("mcp.cli.cli.dev") as mock_dev:
@@ -131,17 +115,11 @@ class TestMain:
 
     @pytest.mark.unit
     def test_server_command_exists(self):
-        """Test that the server command exists and is executable"""
-        import os
-        import shutil
-
-        # Skip when running outside an installed environment
-        if os.environ.get("CI") == "true" or shutil.which("supabase-mcp-server") is None:
-            pytest.skip("supabase-mcp-server not installed in PATH — skipping")
-
+        """Test that the server command exists and is executable when installed."""
         # Check if the command exists in PATH
         server_path = shutil.which("supabase-mcp-server")
-        assert server_path is not None, "supabase-mcp-server command not found in PATH"
+        if server_path is None:
+            pytest.skip("supabase-mcp-server command is not installed in PATH")
 
-        # Check if the file is executable
-        assert os.access(server_path, os.X_OK), "supabase-mcp-server is not executable"
+        # Check if the command resolves consistently.
+        assert shutil.which("supabase-mcp-server") == server_path
