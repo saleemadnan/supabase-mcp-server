@@ -1,6 +1,6 @@
 # Database tool descriptions
 
-get_db_schemas: |
+get_schemas: |
   List all database schemas with their sizes and table counts.
 
   Returns a comprehensive overview of all schemas in the database, including:
