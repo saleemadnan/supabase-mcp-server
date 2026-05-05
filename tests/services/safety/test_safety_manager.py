@@ -306,3 +306,77 @@ class TestSafetyManager:
         # Now validate the operation again with the confirmation ID
         # This should not raise an exception
         manager.validate_operation(ClientType.DATABASE, "high_risk", has_confirmation=True)
+
+    def test_register_safety_configs(self):
+        """Test that register_safety_configs registers both SQL and API configs."""
+        manager = SafetyManager.get_instance()
+        result = manager.register_safety_configs()
+
+        assert result is True
+        assert ClientType.DATABASE in manager._safety_configs
+        assert ClientType.API in manager._safety_configs
+
+    def test_validate_operation_no_config_raises(self):
+        """Test that validate_operation raises OperationNotAllowedError when no config is registered."""
+        manager = SafetyManager.get_instance()
+        # No config registered for API — should raise immediately
+        with pytest.raises(OperationNotAllowedError, match="No safety configuration registered"):
+            manager.validate_operation(ClientType.API, "any_operation")
+
+    def test_get_current_mode_returns_string(self):
+        """Test that get_current_mode returns the mode as a string."""
+        manager = SafetyManager.get_instance()
+
+        manager.set_safety_mode(ClientType.DATABASE, SafetyMode.SAFE)
+        assert manager.get_current_mode(ClientType.DATABASE) == str(SafetyMode.SAFE)
+
+        manager.set_safety_mode(ClientType.DATABASE, SafetyMode.UNSAFE)
+        assert manager.get_current_mode(ClientType.DATABASE) == str(SafetyMode.UNSAFE)
+
+    def test_get_operations_by_risk_level_with_api_config(self):
+        """Test get_operations_by_risk_level returns correct paths for API config."""
+        from supabase_mcp.services.safety.models import OperationRiskLevel
+
+        manager = SafetyManager.get_instance()
+        manager.register_safety_configs()
+
+        result = manager.get_operations_by_risk_level(OperationRiskLevel.EXTREME, ClientType.API)
+        assert result is not None
+        assert isinstance(result, dict)
+
+    def test_get_operations_by_risk_level_no_config(self):
+        """Test get_operations_by_risk_level returns empty dict when no config registered."""
+        manager = SafetyManager.get_instance()
+        # No config registered — DATABASE config missing PATH_SAFETY_CONFIG
+        result = manager.get_operations_by_risk_level("extreme", ClientType.DATABASE)
+        assert result == {}
+
+    def test_reset_clears_singleton(self):
+        """Test that reset() clears the singleton instance."""
+        manager1 = SafetyManager.get_instance()
+        SafetyManager.reset()
+        manager2 = SafetyManager.get_instance()
+        assert manager1 is not manager2
+
+    def test_api_client_type_safety_modes(self):
+        """Test safety mode management for API client type."""
+        manager = SafetyManager.get_instance()
+
+        assert manager.get_safety_mode(ClientType.API) == SafetyMode.SAFE
+
+        manager.set_safety_mode(ClientType.API, SafetyMode.UNSAFE)
+        assert manager.get_safety_mode(ClientType.API) == SafetyMode.UNSAFE
+
+        manager.set_safety_mode(ClientType.API, SafetyMode.SAFE)
+        assert manager.get_safety_mode(ClientType.API) == SafetyMode.SAFE
+
+    def test_extreme_risk_always_blocked_regardless_of_mode(self):
+        """Test that EXTREME risk operations are blocked in both SAFE and UNSAFE modes."""
+        manager = SafetyManager.get_instance()
+        mock_config = MockSafetyConfig()
+        manager.register_config(ClientType.DATABASE, mock_config)
+
+        for mode in (SafetyMode.SAFE, SafetyMode.UNSAFE):
+            manager.set_safety_mode(ClientType.DATABASE, mode)
+            with pytest.raises(OperationNotAllowedError):
+                manager.validate_operation(ClientType.DATABASE, "extreme_risk", has_confirmation=True)
