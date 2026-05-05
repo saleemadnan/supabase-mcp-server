@@ -10,156 +10,153 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "asyncpg>=0.30.0",
-    "logfire[system-metrics]>=3.12.0",
-    "mcp[cli]>=1.4.1",
-    "pglast>=7.3",
-    "pyyaml>=6.0.2",
-    "supabase>=2.13.0",
-    "tenacity>=9.0.0",
-]
-authors = [
-    {name = "Alexander Zuev", email = "azuev@outlook.com"}
-]
-keywords = ["supabase", "mcp", "cursor", "windsurf", "model-context-protocol", "claude", "cline"]
-license = "Apache-2.0"
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-    "Topic :: Database :: Database Engines/Servers",
-]
+        "logfire[system-metrics]>=3.12.0",
+            "mcp[cli]>=1.4.1",
+                "pglast>=7.3",
+                    "pyyaml>=6.0.2",
+                        "supabase>=2.13.0",
+                            "tenacity>=9.0.0",
+                            ]
+                            authors = [
+                                {name = "Alexander Zuev", email = "azuev@outlook.com"}
+                                ]
+                                keywords = ["supabase", "mcp", "cursor", "windsurf", "model-context-protocol", "claude", "cline"]
+                                license = "Apache-2.0"
+                                classifiers = [
+                                    "Development Status :: 4 - Beta",
+                                        "Intended Audience :: Developers",
+                                            "License :: OSI Approved :: Apache Software License",
+                                                "Programming Language :: Python :: 3.12",
+                                                    "Topic :: Software Development :: Libraries :: Python Modules",
+                                                        "Topic :: Database :: Database Engines/Servers",
+                                                        ]
 
-[project.urls]
-Homepage = "https://github.com/alexander-zuev/supabase-mcp-server"
-Repository = "https://github.com/alexander-zuev/supabase-mcp-server.git"
-Changelog = "https://github.com/alexander-zuev/supabase-mcp-server/blob/main/CHANGELOG.MD"
-Documentation = "https://github.com/alexander-zuev/supabase-mcp-server#readme"
-
-
-
-[tool.hatch.build.targets.wheel]
-packages = ["supabase_mcp"]
-
-[tool.uv]
-package = true
-
-[tool.hatch.version]
-source = "vcs"
-raw-options = { version_scheme = "no-guess-dev" }
-
-[tool.hatch.build.hooks.vcs]
-version-file = "supabase_mcp/_version.py"
-
-[project.scripts]
-supabase-mcp-server = "supabase_mcp.main:run_server"
-supabase-mcp-inspector = "supabase_mcp.main:run_inspector"
+                                                        [project.urls]
+                                                        Homepage = "https://github.com/alexander-zuev/supabase-mcp-server"
+                                                        Repository = "https://github.com/alexander-zuev/supabase-mcp-server.git"
+                                                        Changelog = "https://github.com/alexander-zuev/supabase-mcp-server/blob/main/CHANGELOG.MD"
+                                                        Documentation = "https://github.com/alexander-zuev/supabase-mcp-server#readme"
 
 
-# Configure PyPI publishing
-[[tool.uv.index]]
-name = "pypi"
-url = "https://pypi.org/simple/"
-publish-url = "https://upload.pypi.org/legacy/"
 
-[tool.ruff]
-target-version = "py312"
-line-length = 120
-select = [
-    "E",   # pycodestyle errors
-    "W",   # pycodestyle warnings
-    "F",   # pyflakes
-    "I",   # isort
-    "B",   # flake8-bugbear
-    "C4",  # flake8-comprehensions
-    "UP",  # pyupgrade
-]
-ignore = []
+                                                        [tool.hatch.build.targets.wheel]
+                                                        packages = ["supabase_mcp"]
 
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-skip-magic-trailing-comma = false
-line-ending = "auto"
+                                                        [tool.uv]
+                                                        package = true
+
+                                                        [tool.hatch.version]
+                                                        source = "vcs"
+                                                        raw-options = { version_scheme = "no-guess-dev" }
+
+                                                        [tool.hatch.build.hooks.vcs]
+                                                        version-file = "supabase_mcp/_version.py"
+
+                                                        [project.scripts]
+                                                        supabase-mcp-server = "supabase_mcp.main:run_server"
+                                                        supabase-mcp-inspector = "supabase_mcp.main:run_inspector"
 
 
-[tool.mypy]
-python_version = "3.12"
-strict = true
-ignore_missing_imports = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_return_any = true
-warn_unreachable = true
+                                                        # Configure PyPI publishing
+                                                        [[tool.uv.index]]
+                                                        name = "pypi"
+                                                        url = "https://pypi.org/simple/"
+                                                        publish-url = "https://upload.pypi.org/legacy/"
 
-# Relaxed rules for tests
-[[tool.mypy.overrides]]
-module = "tests.*"
-disallow_untyped_defs = false
-disallow_incomplete_defs = false
-disallow_untyped_decorators = false
-check_untyped_defs = false
-warn_return_any = false
-warn_unreachable = false
+                                                        [tool.ruff]
+                                                        target-version = "py312"
+                                                        line-length = 120
+                                                        select = [
+                                                            "E", # pycodestyle errors
+                                                                "W", # pycodestyle warnings
+                                                                    "F", # pyflakes
+                                                                        "I", # isort
+                                                                            "B", # flake8-bugbear
+                                                                                "C4", # flake8-comprehensions
+                                                                                    "UP", # pyupgrade
+                                                                                    ]
+                                                                                    ignore = []
 
-[tool.pytest]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-addopts = "-v --no-header --tb=short"
+                                                                                    [tool.ruff.format]
+                                                                                    quote-style = "double"
+                                                                                    indent-style = "space"
+                                                                                    skip-magic-trailing-comma = false
+                                                                                    line-ending = "auto"
 
 
-[tool.pytest.ini_options]
-asyncio_mode = "auto"
-asyncio_default_fixture_loop_scope = "module"
+                                                                                    [tool.mypy]
+                                                                                    python_version = "3.12"
+                                                                                    strict = true
+                                                                                    ignore_missing_imports = true
+                                                                                    disallow_untyped_defs = true
+                                                                                    disallow_incomplete_defs = true
+                                                                                    check_untyped_defs = true
+                                                                                    disallow_untyped_decorators = true
+                                                                                    no_implicit_optional = true
+                                                                                    warn_redundant_casts = true
+                                                                                    warn_unused_ignores = true
+                                                                                    warn_return_any = true
+                                                                                    warn_unreachable = true
 
-markers = [
-    "unit: marks a test as a unit test",
-    "integration: marks a test as an integration test that requires database access"
-]
+                                                                                    # Relaxed rules for tests
+                                                                                    [[tool.mypy.overrides]]
+                                                                                    module = "tests.*"
+                                                                                    disallow_untyped_defs = false
+                                                                                    disallow_incomplete_defs = false
+                                                                                    disallow_untyped_decorators = false
+                                                                                    check_untyped_defs = false
+                                                                                    warn_return_any = false
+                                                                                    warn_unreachable = false
 
-[dependency-groups]
-dev = [
-    "asyncpg-stubs>=0.30.0",
-    "mypy>=1.15.0",
-    "pytest>=8.3.4",
-    "pytest-asyncio>=0.25.3",
-    "pytest-cov>=6.0.0",
-    "pytest-mock>=3.14.0",
-    "ruff>=0.9.9",
-    "sqlfluff>=3.3.1",
-]
+                                                                                    [tool.pytest.ini_options]
+                                                                                    testpaths = ["tests"]
+                                                                                    python_files = ["test_*.py"]
+                                                                                    python_classes = ["Test*"]
+                                                                                    python_functions = ["test_*"]
+                                                                                    addopts = "-v --no-header --tb=short -m unit"
+                                                                                    asyncio_mode = "auto"
+                                                                                    asyncio_default_fixture_loop_scope = "module"
 
+                                                                                    markers = [
+                                                                                        "unit: marks a test as a unit test",
+                                                                                            "integration: marks a test as an integration test that requires database access"
+                                                                                            ]
 
-[tool.sqlfluff.core]
-dialect = "postgres"
-templater = "jinja"
-max_line_length = 120
-
-[tool.sqlfluff.indentation]
-tab_space_size = 4
-
-[tool.sqlfluff.rules]
-exclude_rules = [
-    "L016",  # Line length rules
-    "L031",  # Table aliasing
-    "L034",  # Column order in GROUP BY
-    "L036",  # Select targets should be on a new line
-    "L037",  # Ambiguous ordering directions
-    "L042",  # Join condition required
-    "L047",  # DISTINCT used with parentheses
-    "LT02",  # Layout indent
-    "LT12",  # Files must end with a single trailing newline
-    "LT14",  # Keyword newline
-    "AL01",  # Aliasing of table
-    "AM05",  # Join clauses should be fully qualified
-    "ST09",  # Join order
-    "CP03"   # Function name capitalization
-]
+                                                                                            [dependency-groups]
+                                                                                            dev = [
+                                                                                                "asyncpg-stubs>=0.30.0",
+                                                                                                    "mypy>=1.15.0",
+                                                                                                        "pytest>=8.3.4",
+                                                                                                            "pytest-asyncio>=0.25.3",
+                                                                                                                "pytest-cov>=6.0.0",
+                                                                                                                    "pytest-mock>=3.14.0",
+                                                                                                                        "ruff>=0.9.9",
+                                                                                                                            "sqlfluff>=3.3.1",
+                                                                                                                            ]
+                                                                                                                            
+                                                                                                                            
+                                                                                                                            [tool.sqlfluff.core]
+                                                                                                                            dialect = "postgres"
+                                                                                                                            templater = "jinja"
+                                                                                                                            max_line_length = 120
+                                                                                                                            
+                                                                                                                            [tool.sqlfluff.indentation]
+                                                                                                                            tab_space_size = 4
+                                                                                                                            
+                                                                                                                            [tool.sqlfluff.rules]
+                                                                                                                            exclude_rules = [
+                                                                                                                                "L016", # Line length rules
+                                                                                                                                    "L031", # Table aliasing
+                                                                                                                                        "L034", # Column order in GROUP BY
+                                                                                                                                            "L036", # Select targets should be on a new line
+                                                                                                                                                "L037", # Ambiguous ordering directions
+                                                                                                                                                    "L042", # Join condition required
+                                                                                                                                                        "L047", # DISTINCT used with parentheses
+                                                                                                                                                            "LT02", # Layout indent
+                                                                                                                                                                "LT12", # Files must end with a single trailing newline
+                                                                                                                                                                    "LT14", # Keyword newline
+                                                                                                                                                                        "AL01", # Aliasing of table
+                                                                                                                                                                            "AM05", # Join clauses should be fully qualified
+                                                                                                                                                                                "ST09", # Join order
+                                                                                                                                                                                    "CP03" # Function name capitalization
+                                                                                                                                                                                    ]
