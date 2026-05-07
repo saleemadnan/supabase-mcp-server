@@ -68,7 +68,7 @@ jobs:
 
       - name: Run SonarQube scan
         if: steps.sonar-secrets.outputs.configured == 'true'
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
