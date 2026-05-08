@@ -121,5 +121,5 @@ class TestMain:
         if server_path is None:
             pytest.skip("supabase-mcp-server command is not installed in PATH")
 
-        # Check if the file is executable
+        # Check if the command resolves consistently.
         assert shutil.which("supabase-mcp-server") == server_path

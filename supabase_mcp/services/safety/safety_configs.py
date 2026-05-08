@@ -495,7 +495,6 @@ class SQLSafetyConfig(SafetyConfigBase[QueryValidationResults]):
         },
     }
 
-    # Functions for more complex determinations
     def classify_statement(self, stmt_type: str, stmt_node: Any) -> dict[str, Any]:
         """Get classification rules for a given statement type from our config."""
         config = self.STATEMENT_CONFIG.get(
@@ -535,3 +534,52 @@ class SQLSafetyConfig(SafetyConfigBase[QueryValidationResults]):
         """
         # Simply return the highest risk level that's already tracked in the batch
         return operation.highest_risk_level
+
+
+# ========
+# Meta Safety Config
+# ========
+
+# Operation name → risk level mapping for Meta Marketing API tools
+_META_RISK_MAP: dict[str, OperationRiskLevel] = {
+    # Read-only — always allowed
+    "meta_get_account_info": OperationRiskLevel.LOW,
+    "meta_list_campaigns": OperationRiskLevel.LOW,
+    "meta_get_campaign": OperationRiskLevel.LOW,
+    "meta_list_adsets": OperationRiskLevel.LOW,
+    "meta_get_adset": OperationRiskLevel.LOW,
+    "meta_list_ads": OperationRiskLevel.LOW,
+    "meta_get_ad": OperationRiskLevel.LOW,
+    "meta_get_account_insights": OperationRiskLevel.LOW,
+    "meta_get_campaign_insights": OperationRiskLevel.LOW,
+    "meta_get_adset_insights": OperationRiskLevel.LOW,
+    "meta_get_ad_insights": OperationRiskLevel.LOW,
+    "meta_list_creatives": OperationRiskLevel.LOW,
+    "meta_exchange_token": OperationRiskLevel.LOW,
+    # Write / reversible — require UNSAFE mode
+    "meta_create_campaign": OperationRiskLevel.MEDIUM,
+    "meta_update_campaign": OperationRiskLevel.MEDIUM,
+    "meta_toggle_campaign": OperationRiskLevel.MEDIUM,
+    "meta_create_adset": OperationRiskLevel.MEDIUM,
+    "meta_update_adset": OperationRiskLevel.MEDIUM,
+    "meta_create_ad": OperationRiskLevel.MEDIUM,
+    "meta_update_ad": OperationRiskLevel.MEDIUM,
+    "meta_create_creative": OperationRiskLevel.MEDIUM,
+    # Destructive / irreversible — require UNSAFE mode + confirmation
+    "meta_delete_campaign": OperationRiskLevel.HIGH,
+    "meta_delete_adset": OperationRiskLevel.HIGH,
+    "meta_delete_ad": OperationRiskLevel.HIGH,
+}
+
+
+class MetaSafetyConfig(SafetyConfigBase[Any]):
+    """Safety configuration for Meta Marketing API operations.
+
+    The operation value can be a plain tool-name string, or a
+    ``(tool_name, kwargs)`` tuple when args must survive the confirmation
+    round-trip (used for delete operations).
+    """
+
+    def get_risk_level(self, operation: Any) -> OperationRiskLevel:
+        tool_name = operation[0] if isinstance(operation, tuple) else operation
+        return _META_RISK_MAP.get(tool_name, OperationRiskLevel.MEDIUM)

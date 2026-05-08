@@ -160,6 +160,7 @@ class TestToolManager:
         # Verify specific core tools are included
         assert "retrieve_logs" in tool_values, "retrieve_logs tool is missing from ToolName enum"
         assert "get_auth_status" in tool_values, "get_auth_status tool is missing from ToolName enum"
+        assert "meta_list_linked_accounts" in tool_values, "Meta tools are missing from ToolName enum"
 
         # Reset the singleton for other tests
         # pylint: disable=protected-access
