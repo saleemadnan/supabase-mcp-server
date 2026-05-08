@@ -36,6 +36,33 @@ class ToolName(str, Enum):
     # Auth status tool
     GET_AUTH_STATUS = "get_auth_status"
 
+    # Meta Marketing API tools
+    META_LIST_LINKED_ACCOUNTS = "meta_list_linked_accounts"
+    META_GET_ACCOUNT_INFO = "meta_get_account_info"
+    META_LIST_CAMPAIGNS = "meta_list_campaigns"
+    META_GET_CAMPAIGN = "meta_get_campaign"
+    META_CREATE_CAMPAIGN = "meta_create_campaign"
+    META_UPDATE_CAMPAIGN = "meta_update_campaign"
+    META_DELETE_CAMPAIGN = "meta_delete_campaign"
+    META_TOGGLE_CAMPAIGN = "meta_toggle_campaign"
+    META_LIST_ADSETS = "meta_list_adsets"
+    META_GET_ADSET = "meta_get_adset"
+    META_CREATE_ADSET = "meta_create_adset"
+    META_UPDATE_ADSET = "meta_update_adset"
+    META_DELETE_ADSET = "meta_delete_adset"
+    META_LIST_ADS = "meta_list_ads"
+    META_GET_AD = "meta_get_ad"
+    META_CREATE_AD = "meta_create_ad"
+    META_UPDATE_AD = "meta_update_ad"
+    META_DELETE_AD = "meta_delete_ad"
+    META_GET_ACCOUNT_INSIGHTS = "meta_get_account_insights"
+    META_GET_CAMPAIGN_INSIGHTS = "meta_get_campaign_insights"
+    META_GET_ADSET_INSIGHTS = "meta_get_adset_insights"
+    META_GET_AD_INSIGHTS = "meta_get_ad_insights"
+    META_LIST_CREATIVES = "meta_list_creatives"
+    META_CREATE_CREATIVE = "meta_create_creative"
+    META_EXCHANGE_TOKEN = "meta_exchange_token"
+
 
 class ToolManager:
     """Manager for tool descriptions and registration.
