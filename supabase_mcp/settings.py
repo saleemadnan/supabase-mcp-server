@@ -1,8 +1,9 @@
 import os
 from pathlib import Path
-from typing import Literal
+from typing import Literal, get_args
+from urllib.parse import urlparse
 
-from pydantic import Field, ValidationInfo, field_validator
+from pydantic import Field, ValidationInfo, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from supabase_mcp.logger import logger
@@ -25,6 +26,10 @@ SUPPORTED_REGIONS = Literal[
     "ap-southeast-2",  # Oceania (Sydney)
     "sa-east-1",  # South America (São Paulo)
 ]
+SUPPORTED_REGION_VALUES = get_args(SUPPORTED_REGIONS)
+
+LOCAL_PROJECT_REF = "127.0.0.1:54322"
+SUPABASE_HOST_SUFFIX = ".supabase.co"
 
 
 def find_config_file(env_file: str = ".env") -> str | None:
@@ -66,14 +71,24 @@ class Settings(BaseSettings):
     """Initializes settings for Supabase MCP server."""
 
     supabase_project_ref: str = Field(
-        default="127.0.0.1:54322",  # Local Supabase default
+        default=LOCAL_PROJECT_REF,  # Local Supabase default
         description="Supabase project ref - Must be 20 chars for remote projects, can be local address for development",
         alias="SUPABASE_PROJECT_REF",
+    )
+    supabase_url: str | None = Field(
+        default=None,
+        description="Optional Supabase project URL. Must be https://<project-ref>.supabase.co for remote projects.",
+        alias="SUPABASE_URL",
     )
     supabase_db_password: str | None = Field(
         default=None,  # Will be validated based on project_ref
         description="Supabase database password - Required for remote projects, defaults to 'postgres' for local",
         alias="SUPABASE_DB_PASSWORD",
+    )
+    db_url: str | None = Field(
+        default=None,
+        description="Optional PostgreSQL connection string. Must use the postgresql:// scheme.",
+        alias="DB_URL",
     )
     supabase_region: str = Field(
         default="us-east-1",  # East US (North Virginia) - Supabase's default region
@@ -178,9 +193,70 @@ class Settings(BaseSettings):
             )
 
         # Validate that the region is supported
-        if v not in SUPPORTED_REGIONS.__args__:
-            supported = "\n  - ".join([""] + list(SUPPORTED_REGIONS.__args__))
+        if v not in SUPPORTED_REGION_VALUES:
+            supported = "\n  - ".join([""] + list(SUPPORTED_REGION_VALUES))
             raise ValueError(f"Region '{v}' is not supported. Supported regions are:{supported}")
+        return v
+
+    @field_validator("supabase_url", mode="before")
+    @classmethod
+    def normalize_optional_supabase_url(cls, v: str | None) -> str | None:
+        """Treat empty SUPABASE_URL values as unset."""
+        if v is None:
+            return None
+        if not isinstance(v, str):
+            raise ValueError("SUPABASE_URL must be a string")
+        stripped = v.strip()
+        return stripped or None
+
+    @field_validator("supabase_url")
+    @classmethod
+    def validate_supabase_url(cls, v: str | None) -> str | None:
+        """Validate remote Supabase project URL format."""
+        if v is None:
+            return None
+
+        parsed = urlparse(v)
+        if parsed.scheme != "https":
+            raise ValueError("SUPABASE_URL must start with https://")
+        if parsed.path not in ("", "/") or parsed.params or parsed.query or parsed.fragment:
+            raise ValueError("SUPABASE_URL must be a project root URL like https://<project-ref>.supabase.co")
+
+        host = parsed.hostname or ""
+        if not host.endswith(SUPABASE_HOST_SUFFIX):
+            raise ValueError("SUPABASE_URL must match https://<project-ref>.supabase.co")
+
+        project_ref = host[: -len(SUPABASE_HOST_SUFFIX)]
+        if len(project_ref) != 20 or not project_ref.isalnum() or project_ref.lower() != project_ref:
+            raise ValueError("SUPABASE_URL project ref must be 20 lowercase alphanumeric characters")
+
+        return f"https://{project_ref}{SUPABASE_HOST_SUFFIX}"
+
+    @field_validator("db_url", mode="before")
+    @classmethod
+    def normalize_optional_db_url(cls, v: str | None) -> str | None:
+        """Treat empty DB_URL values as unset."""
+        if v is None:
+            return None
+        if not isinstance(v, str):
+            raise ValueError("DB_URL must be a string")
+        stripped = v.strip()
+        return stripped or None
+
+    @field_validator("db_url")
+    @classmethod
+    def validate_db_url(cls, v: str | None) -> str | None:
+        """Validate explicit PostgreSQL connection string format."""
+        if v is None:
+            return None
+
+        parsed = urlparse(v)
+        if parsed.scheme != "postgresql":
+            raise ValueError("DB_URL must start with postgresql://")
+        if not parsed.hostname:
+            raise ValueError("DB_URL must include a database host")
+        if not parsed.path or parsed.path == "/":
+            raise ValueError("DB_URL must include a database name")
         return v
 
     @field_validator("supabase_project_ref")
@@ -203,22 +279,71 @@ class Settings(BaseSettings):
 
     @field_validator("supabase_db_password")
     @classmethod
-    def validate_db_password(cls, v: str | None, info: ValidationInfo) -> str:
-        """Validate database password based on project type."""
+    def validate_db_password(cls, v: str | None, info: ValidationInfo) -> str | None:
+        """Default the local development database password only for local settings."""
         project_ref = info.data.get("supabase_project_ref", "")
+        supabase_url = info.data.get("supabase_url")
 
         # For local development, allow default password
-        if project_ref.startswith("127.0.0.1"):
+        if project_ref.startswith("127.0.0.1") and supabase_url is None:
             return v or "postgres"  # Default to postgres for local
 
-        # For remote projects, password is required
-        if not v:
-            logger.error("SUPABASE_DB_PASSWORD is required when connecting to a remote instance")
-            raise ValueError(
-                "Database password is required for remote Supabase projects. "
-                "Please set SUPABASE_DB_PASSWORD in your environment variables."
-            )
         return v
+
+    @field_validator("supabase_service_role_key", mode="before")
+    @classmethod
+    def normalize_optional_service_role_key(cls, v: str | None) -> str | None:
+        """Treat empty SUPABASE_SERVICE_ROLE_KEY values as unset."""
+        if v is None:
+            return None
+        if not isinstance(v, str):
+            raise ValueError("SUPABASE_SERVICE_ROLE_KEY must be a string")
+        stripped = v.strip()
+        return stripped or None
+
+    @model_validator(mode="after")
+    def align_supabase_url_and_project_ref(self) -> "Settings":
+        """Keep SUPABASE_URL and SUPABASE_PROJECT_REF consistent."""
+        if self.supabase_url is None:
+            return self
+
+        host = urlparse(self.supabase_url).hostname or ""
+        project_ref = host[: -len(SUPABASE_HOST_SUFFIX)]
+
+        if self.supabase_project_ref == LOCAL_PROJECT_REF:
+            self.supabase_project_ref = project_ref
+            return self
+
+        if self.supabase_project_ref != project_ref:
+            raise ValueError(
+                "SUPABASE_URL project ref does not match SUPABASE_PROJECT_REF. "
+                f"Got URL ref '{project_ref}' and project ref '{self.supabase_project_ref}'."
+            )
+
+        return self
+
+    @model_validator(mode="after")
+    def require_remote_database_credentials(self) -> "Settings":
+        """Require clear database credentials for remote Supabase projects."""
+        is_remote_project = not self.supabase_project_ref.startswith("127.0.0.1")
+        if not is_remote_project:
+            return self
+
+        if not self.supabase_db_password and not self.db_url:
+            raise ValueError(
+                "Database password is required for remote Supabase projects unless DB_URL is provided. "
+                "Set SUPABASE_DB_PASSWORD or DB_URL in your environment variables."
+            )
+        return self
+
+    def require_service_role_key(self) -> str:
+        """Return the service role key or raise a clear feature-specific error."""
+        if not self.supabase_service_role_key:
+            raise ValueError(
+                "SUPABASE_SERVICE_ROLE_KEY is required to use Auth Admin SDK tools. "
+                "Set SUPABASE_SERVICE_ROLE_KEY in your environment or config file."
+            )
+        return self.supabase_service_role_key
 
     @classmethod
     def with_config(cls, config_file: str | None = None) -> "Settings":
@@ -229,7 +354,7 @@ class Settings(BaseSettings):
         """
 
         # Create a new Settings class with the specific config
-        class SettingsWithConfig(cls):
+        class SettingsWithConfig(cls):  # type: ignore[misc, valid-type]
             model_config = SettingsConfigDict(env_file=config_file, env_file_encoding="utf-8")
 
         instance = SettingsWithConfig()

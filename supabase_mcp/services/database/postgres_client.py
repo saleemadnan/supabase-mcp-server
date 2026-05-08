@@ -76,7 +76,7 @@ class PostgresClient:
         self.project_ref = project_ref or self._settings.supabase_project_ref
         self.db_password = db_password or self._settings.supabase_db_password
         self.db_region = db_region or self._settings.supabase_region
-        self.db_url = self._build_connection_string()
+        self.db_url = self._settings.db_url or self._build_connection_string()
         self.sql_validator: SQLValidator = SQLValidator()
 
         # Only log once during initialization with clear project info
@@ -120,6 +120,11 @@ class PostgresClient:
         Returns:
             PostgreSQL connection string compatible with asyncpg
         """
+        if self.db_password is None:
+            raise ConnectionError(
+                "Database password is required to build a Supabase PostgreSQL connection string. "
+                "Set SUPABASE_DB_PASSWORD or provide DB_URL."
+            )
         encoded_password = urllib.parse.quote_plus(self.db_password)
 
         if self.project_ref.startswith("127.0.0.1"):
@@ -185,7 +190,8 @@ class PostgresClient:
                 error_message = (
                     "CONNECTION ERROR: Region mismatch detected!\n\n"
                     f"Could not connect to Supabase project '{self.project_ref}'.\n\n"
-                    "This error typically occurs when your SUPABASE_REGION setting doesn't match your project's actual region.\n"
+                    "This error typically occurs when your SUPABASE_REGION setting doesn't match "
+                    "your project's actual region.\n"
                     f"Your configuration is using region: '{self.db_region}' (default: us-east-1)\n\n"
                     "ACTION REQUIRED: Please set the correct SUPABASE_REGION in your MCP server configuration.\n"
                     "You can find your project's region in the Supabase dashboard under Project Settings."
@@ -406,13 +412,7 @@ class PostgresClient:
             raise PermissionError(
                 f"Access denied: {str(error)}. Use live_dangerously('database', True) for write operations."
             ) from error
-        elif isinstance(
-            error,
-            (
-                asyncpg.exceptions.UndefinedTableError,
-                asyncpg.exceptions.UndefinedColumnError,
-            ),
-        ):
+        elif isinstance(error, asyncpg.exceptions.UndefinedTableError | asyncpg.exceptions.UndefinedColumnError):
             logger.error(f"Schema error: {error}")
             raise QueryError(str(error)) from error
         else:

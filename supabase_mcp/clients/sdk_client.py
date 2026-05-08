@@ -51,6 +51,8 @@ class SupabaseSDKClient:
 
     def get_supabase_url(self) -> str:
         """Returns the Supabase URL based on the project reference"""
+        if self.settings and self.settings.supabase_url:
+            return self.settings.supabase_url
         if not self.project_ref:
             raise PythonSDKError("Project reference is not set")
         if self.project_ref.startswith("127.0.0.1"):
@@ -197,9 +199,16 @@ class SupabaseSDKClient:
         """Calls a method of the Python SDK client"""
         # Check if service role key is available
         if not self.service_role_key:
-            raise PythonSDKError(
-                "Supabase service role key is not configured. Set SUPABASE_SERVICE_ROLE_KEY environment variable to use Auth Admin tools."
-            )
+            if self.settings:
+                try:
+                    self.service_role_key = self.settings.require_service_role_key()
+                except ValueError as e:
+                    raise PythonSDKError(str(e)) from e
+            else:
+                raise PythonSDKError(
+                    "SUPABASE_SERVICE_ROLE_KEY is required to use Auth Admin SDK tools. "
+                    "Set SUPABASE_SERVICE_ROLE_KEY in your environment or config file."
+                )
 
         if not self.client:
             self.client = await self.get_client()

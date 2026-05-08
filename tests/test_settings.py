@@ -118,3 +118,104 @@ class TestSettings:
             settings = Settings()
             assert settings.supabase_access_token is None
             assert settings.supabase_service_role_key is None
+
+    def test_supabase_url_sets_remote_project_ref(self) -> None:
+        """Test SUPABASE_URL validation and project ref extraction."""
+        env_values = {
+            "SUPABASE_URL": "https://abcdefghijklmnopqrst.supabase.co/",
+            "SUPABASE_DB_PASSWORD": "remote-password",
+        }
+        with patch.dict("os.environ", env_values, clear=True):
+            settings = Settings()
+            assert settings.supabase_url == "https://abcdefghijklmnopqrst.supabase.co"
+            assert settings.supabase_project_ref == "abcdefghijklmnopqrst"
+            assert settings.supabase_db_password == "remote-password"
+
+    @pytest.mark.parametrize(
+        "supabase_url, expected_message",
+        [
+            ("http://abcdefghijklmnopqrst.supabase.co", "SUPABASE_URL must start with https://"),
+            ("https://example.com", "SUPABASE_URL must match https://<project-ref>.supabase.co"),
+            (
+                "https://short.supabase.co",
+                "SUPABASE_URL project ref must be 20 lowercase alphanumeric characters",
+            ),
+            (
+                "https://abcdefghijklmnopqrst.supabase.co/rest/v1",
+                "SUPABASE_URL must be a project root URL",
+            ),
+        ],
+    )
+    def test_supabase_url_validation_errors(self, supabase_url: str, expected_message: str) -> None:
+        """Test malformed SUPABASE_URL values fail with actionable messages."""
+        env_values = {
+            "SUPABASE_URL": supabase_url,
+            "SUPABASE_DB_PASSWORD": "remote-password",
+        }
+        with pytest.raises(ValidationError) as exc_info:
+            with patch.dict("os.environ", env_values, clear=True):
+                Settings()
+        assert expected_message in str(exc_info.value)
+
+    def test_supabase_url_must_match_project_ref_when_both_are_set(self) -> None:
+        """Test SUPABASE_URL and SUPABASE_PROJECT_REF cannot conflict."""
+        env_values = {
+            "SUPABASE_URL": "https://abcdefghijklmnopqrst.supabase.co",
+            "SUPABASE_PROJECT_REF": "tsrqponmlkjihgfedcba",
+            "SUPABASE_DB_PASSWORD": "remote-password",
+        }
+        with pytest.raises(ValidationError) as exc_info:
+            with patch.dict("os.environ", env_values, clear=True):
+                Settings()
+        assert "SUPABASE_URL project ref does not match SUPABASE_PROJECT_REF" in str(exc_info.value)
+
+    def test_remote_project_requires_database_password_or_db_url(self) -> None:
+        """Test remote projects fail early without database credentials."""
+        env_values = {"SUPABASE_PROJECT_REF": "abcdefghijklmnopqrst"}
+        with pytest.raises(ValidationError) as exc_info:
+            with patch.dict("os.environ", env_values, clear=True):
+                Settings()
+        assert "Database password is required for remote Supabase projects unless DB_URL is provided" in str(
+            exc_info.value
+        )
+
+    def test_remote_project_accepts_db_url_without_password(self) -> None:
+        """Test DB_URL can explicitly provide the remote database connection."""
+        db_url = "postgresql://postgres:secret@db.example.com:5432/postgres"
+        env_values = {
+            "SUPABASE_PROJECT_REF": "abcdefghijklmnopqrst",
+            "DB_URL": db_url,
+        }
+        with patch.dict("os.environ", env_values, clear=True):
+            settings = Settings()
+            assert settings.supabase_project_ref == "abcdefghijklmnopqrst"
+            assert settings.supabase_db_password is None
+            assert settings.db_url == db_url
+
+    @pytest.mark.parametrize(
+        "db_url, expected_message",
+        [
+            ("postgres://postgres:secret@db.example.com/postgres", "DB_URL must start with postgresql://"),
+            ("postgresql:///postgres", "DB_URL must include a database host"),
+            ("postgresql://postgres:secret@db.example.com", "DB_URL must include a database name"),
+        ],
+    )
+    def test_db_url_validation_errors(self, db_url: str, expected_message: str) -> None:
+        """Test malformed DB_URL values fail with actionable messages."""
+        env_values = {
+            "SUPABASE_PROJECT_REF": "abcdefghijklmnopqrst",
+            "DB_URL": db_url,
+        }
+        with pytest.raises(ValidationError) as exc_info:
+            with patch.dict("os.environ", env_values, clear=True):
+                Settings()
+        assert expected_message in str(exc_info.value)
+
+    def test_empty_service_role_key_is_treated_as_missing(self) -> None:
+        """Test blank SUPABASE_SERVICE_ROLE_KEY fails the feature-specific requirement."""
+        with patch.dict("os.environ", {"SUPABASE_SERVICE_ROLE_KEY": "   "}, clear=True):
+            settings = Settings()
+            assert settings.supabase_service_role_key is None
+            with pytest.raises(ValueError) as exc_info:
+                settings.require_service_role_key()
+        assert "SUPABASE_SERVICE_ROLE_KEY is required to use Auth Admin SDK tools" in str(exc_info.value)
