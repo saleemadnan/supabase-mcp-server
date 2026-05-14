@@ -29,7 +29,7 @@ async def lifespan(app: FastMCP) -> AsyncGenerator[FastMCP, None]:
         # Force kill the entire process - doesn't care about async contexts
         import os
 
-        os._exit(0)  # Use 0 for successful termination
+        os._exit(0)  # Intentional hard exit: bypasses asyncio teardown to prevent MCP stdio hang on shutdown
 
 
 # Create mcp instance
