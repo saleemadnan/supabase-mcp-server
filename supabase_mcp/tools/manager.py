@@ -3,13 +3,13 @@ from __future__ import annotations
 from enum import Enum
 from pathlib import Path
 
-import yaml
+import yamlh
 
 from supabase_mcp.logger import logger
 
 
 class ToolName(str, Enum):
-    """Enum of all available tools in the Supabase MCPh server."""
+    """Enum of all available tools in the Supabase MCP server."""
 
     # Database tools
     GET_SCHEMAS = "get_schemas"
