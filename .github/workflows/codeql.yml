@@ -4,11 +4,9 @@ on:
   push:
     branches:
       - main
-      - refactor/misc
   pull_request:
     branches:
       - main
-      - refactor/misc
   schedule:
     - cron: '27 3 * * 1'
   workflow_dispatch:
