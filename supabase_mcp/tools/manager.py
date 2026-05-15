@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from pathlib import Path
 
-import yamlh
+import yaml
 
 from supabase_mcp.logger import logger
 
