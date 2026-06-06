@@ -19,6 +19,9 @@ async def lifespan(app: FastMCP) -> AsyncGenerator[FastMCP, None]:
         services_container = ServicesContainer.get_instance()
         services_container.initialize_services(settings)
 
+        # Automatically authenticate/connect to the database at startup (auto-login)
+        await services_container.connect_services()
+
         # Register tools
         mcp = ToolRegistry(mcp=app, services_container=services_container).register_tools()
         yield mcp
