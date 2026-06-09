@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import urllib.parse
 from collections.abc import Awaitable, Callable
 from typing import Any, TypeVar
@@ -16,8 +17,6 @@ from supabase_mcp.settings import Settings
 
 # Define a type variable for generic return types
 T = TypeVar("T")
-
-# TODO: Use a context manager to properly handle the connection pool
 
 
 class StatementResult(BaseModel):
@@ -246,13 +245,26 @@ class PostgresClient:
         else:
             logger.debug("Using existing connection pool")
 
+    async def __aenter__(self) -> PostgresClient:
+        """Enter the async context manager.
+
+        The connection pool is still created lazily on first query, but using
+        the client as a context manager guarantees the pool is closed on exit.
+
+        Returns:
+            This client instance
+        """
+        return self
+
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        """Exit the async context manager, closing the connection pool."""
+        await self.close()
+
     async def close(self) -> None:
         """Close the connection pool and release all resources.
 
         This should be called when shutting down the application.
         """
-        import asyncio
-
         if self._pool:
             await asyncio.wait_for(self._pool.close(), timeout=5.0)
             self._pool = None
