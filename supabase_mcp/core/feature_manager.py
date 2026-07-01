@@ -5,6 +5,7 @@ from supabase_mcp.exceptions import APIError, ConfirmationRequiredError, Feature
 from supabase_mcp.logger import logger
 from supabase_mcp.services.database.postgres_client import QueryResult
 from supabase_mcp.services.safety.models import ClientType, SafetyMode
+from supabase_mcp.settings import settings
 from supabase_mcp.tools.manager import ToolName
 
 if TYPE_CHECKING:
@@ -84,6 +85,8 @@ class FeatureManager:
             return await self.get_auth_admin_methods_spec(services_container)
         elif tool_name == ToolName.CALL_AUTH_ADMIN_METHOD:
             return await self.call_auth_admin_method(services_container, **kwargs)
+        elif tool_name == ToolName.GET_AUTH_STATUS:
+            return await self.get_auth_status(services_container)
         elif tool_name == ToolName.LIVE_DANGEROUSLY:
             return await self.live_dangerously(services_container, **kwargs)
         elif tool_name == ToolName.CONFIRM_DESTRUCTIVE_OPERATION:
@@ -223,6 +226,31 @@ class FeatureManager:
         """Call an Auth Admin method from Supabase Python SDK."""
         sdk_client = container.sdk_client
         return await sdk_client.call_auth_admin_method(method, params)
+
+    async def get_auth_status(self, container: "ServicesContainer") -> dict[str, Any]:
+        """Return the current authentication and remote connection configuration state."""
+        result: dict[str, Any] = {
+            "personal_access_token": "configured" if settings.supabase_access_token else "missing",
+            "service_role_key": "configured" if settings.supabase_service_role_key else "missing",
+            "supabase_url": "configured" if settings.supabase_url else "missing",
+            "db_url": "configured" if settings.db_url else "missing",
+        }
+
+        try:
+            await container.api_client.execute_request("GET", "/v1/projects")
+            result["api_connection"] = "healthy"
+        except Exception as e:
+            logger.debug(f"Management API connection check failed: {e}")
+            result["api_connection"] = "unreachable"
+
+        try:
+            await container.postgres_client.ensure_pool()
+            result["db_connection"] = "healthy"
+        except Exception as e:
+            logger.debug(f"Database connection check failed: {e}")
+            result["db_connection"] = "unreachable"
+
+        return result
 
     async def live_dangerously(
         self, container: "ServicesContainer", service: Literal["api", "database", "meta"], enable_unsafe_mode: bool = False
