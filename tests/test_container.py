@@ -1,5 +1,7 @@
 from typing import Any, cast
+from unittest.mock import AsyncMock
 
+import pytest
 from mcp.server.fastmcp import FastMCP
 
 from supabase_mcp.core.container import ServicesContainer
@@ -38,3 +40,33 @@ class TestContainer:
         assert container.query_manager is not None
         assert container.tool_manager is not None
         assert container.mcp_server is not None
+
+    @pytest.mark.asyncio
+    async def test_connect_services_establishes_pool(self):
+        """Auto-login should eagerly create the database connection pool at startup."""
+        postgres_client = AsyncMock()
+        container = ServicesContainer(postgres_client=postgres_client)
+
+        await container.connect_services()
+
+        postgres_client.ensure_pool.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_connect_services_is_best_effort(self):
+        """A failed startup connection must be swallowed so the server still starts."""
+        postgres_client = AsyncMock()
+        postgres_client.ensure_pool.side_effect = ConnectionError("db unreachable")
+        container = ServicesContainer(postgres_client=postgres_client)
+
+        # Should not raise despite the connection failure
+        await container.connect_services()
+
+        postgres_client.ensure_pool.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_connect_services_without_client(self):
+        """Auto-login should be a no-op when no postgres client is present."""
+        container = ServicesContainer(postgres_client=None)
+
+        # Should not raise
+        await container.connect_services()

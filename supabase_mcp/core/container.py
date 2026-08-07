@@ -125,6 +125,29 @@ class ServicesContainer:
 
         logger.info("✓ All services initialized successfully.")
 
+    async def connect_services(self) -> None:
+        """Eagerly establish the database connection at startup (auto-login).
+
+        By default the PostgreSQL connection pool is created lazily on the first
+        query. Calling this during startup authenticates against the database up
+        front so the first query is fast and connection problems surface early.
+
+        Failures are logged but do not prevent the server from starting — the
+        connection is simply retried lazily on the first query.
+        """
+        if self.postgres_client is None:
+            logger.warning("Cannot auto-connect: PostgreSQL client is not initialized.")
+            return
+
+        try:
+            await self.postgres_client.ensure_pool()
+            logger.info("✓ Database connection established automatically at startup (auto-login enabled).")
+        except Exception as e:  # noqa: BLE001 - best-effort startup connection, must not crash the server
+            logger.warning(
+                f"Automatic database connection at startup failed: {e}. "
+                "The connection will be retried lazily on the first query."
+            )
+
     async def shutdown_services(self) -> None:
         """Properly close all relevant clients and connections"""
         # Postgres client

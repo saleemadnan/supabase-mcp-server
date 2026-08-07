@@ -17,7 +17,6 @@ from supabase_mcp.settings import Settings
 # Define a type variable for generic return types
 T = TypeVar("T")
 
-# TODO: Use a context manager to properly handle the connection pool
 
 
 class StatementResult(BaseModel):
@@ -258,6 +257,13 @@ class PostgresClient:
             self._pool = None
         else:
             logger.debug("No PostgreSQL connection pool to close")
+
+    async def __aenter__(self) -> "PostgresClient":
+        await self.ensure_pool()
+        return self
+
+    async def __aexit__(self, exc_type: type | None, exc_val: Exception | None, exc_tb: object) -> None:
+        await self.close()
 
     @classmethod
     async def reset(cls) -> None:
