@@ -81,8 +81,5 @@ supabase_mcp/_version.py
 COMMIT_CONVENTION.md
 feature-spec/
 
-# Claude code
-CLAUDE.md
-
 #
 future-evolution.md
