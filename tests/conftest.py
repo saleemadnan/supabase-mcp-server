@@ -113,13 +113,9 @@ async def postgres_client_integration(settings_integration: Settings) -> AsyncGe
     # Reset before creation
     await PostgresClient.reset()
 
-    # Create a client
-    client = PostgresClient(settings=settings_integration)
-
-    try:
+    # Create a client; the context manager handles pool creation and cleanup
+    async with PostgresClient(settings=settings_integration) as client:
         yield client
-    finally:
-        await client.close()
 
 
 @pytest_asyncio.fixture(scope="module")
