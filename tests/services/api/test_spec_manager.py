@@ -180,8 +180,11 @@ class TestApiSpecManager:
         # Print the path being used (for debugging)
         print(f"\nTest is looking for spec at: {LOCAL_SPEC_PATH}")
 
-        # Load the spec
-        spec = await spec_manager.get_spec()
+        # Load the bundled spec rather than the live one at SPEC_URL: the live spec
+        # changes upstream (e.g. schemas get renamed), which would make this test
+        # depend on network access and on Supabase's current API surface.
+        with patch.object(spec_manager, "_fetch_remote_spec", AsyncMock(return_value=None)):
+            spec = await spec_manager.get_spec()
         assert spec is not None, "Spec should be loaded successfully"
 
         # 1. Test get_all_domains
