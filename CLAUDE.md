@@ -22,7 +22,7 @@ Layered, dependency-injected design — read top to bottom for the request flow:
 
 ```
 FastMCP server (supabase_mcp/main.py)
-    -> ToolRegistry (tools/registry.py)        registers ~60 MCP tools on the FastMCP app
+    -> ToolRegistry (tools/registry.py)        registers all MCP tools on the FastMCP app
     -> FeatureManager (core/feature_manager.py) routes tool calls to the right service
     -> ServicesContainer (core/container.py)    singleton DI container, owns service lifecycles
     -> Services (services/*)                    domain business logic
@@ -65,7 +65,7 @@ Key modules:
 ### `tools/` — MCP tool surface
 - `registry.py` — wires tools onto the FastMCP server
 - `manager.py` — `ToolName` enum and tool descriptions (the canonical list of
-  ~60 exposed tools: schema/table inspection, `execute_postgresql`,
+  exposed tools: schema/table inspection, `execute_postgresql`,
   `retrieve_migrations`, `live_dangerously`, `confirm_destructive_operation`,
   `send_management_api_request`, `get_management_api_spec`,
   `get_auth_admin_methods_spec`, `call_auth_admin_method`, `retrieve_logs`,
@@ -142,9 +142,16 @@ for private keys, merge conflicts, AST/TOML validity, and runs `pytest` and
 `uv build` before push. Run `pre-commit install` once locally so hooks fire
 automatically.
 
-`mypy` runs in `strict = true` mode for `supabase_mcp/*` (untyped defs,
+`mypy` is configured with `strict = true` for `supabase_mcp/*` (untyped defs,
 incomplete defs, etc. are errors); the `tests.*` override relaxes those same
 checks for test code.
+
+**What actually blocks:** in `ci.yml`, only the unit-test step fails the job —
+the ruff lint and format steps are informational (`continue-on-error: true`),
+and mypy does not run in CI at all. The pre-commit mypy hook is wrapped in `|| true`, so it
+never fails either. The codebase currently has pre-existing ruff findings, so
+don't assume a clean `ruff check .` — check that your change adds no new ones,
+and run `uv run mypy` yourself on code you touch.
 
 ## Conventions
 
@@ -152,12 +159,13 @@ checks for test code.
   server and services are built around `asyncio`/FastMCP. Prefer `async def`
   and non-blocking I/O when extending services/clients.
 - **Strict typing**: add type hints to all new functions in `supabase_mcp/*`
-  (mypy strict will fail CI otherwise). Tests can be more relaxed.
+  (mypy is configured as strict, but nothing enforces it — run it yourself).
+  Tests can be more relaxed.
 - **SQL lives in files**: query text belongs in
   `services/database/sql/queries/*.sql`, loaded via `sql/loader.py` —
   don't inline large SQL strings in Python.
 - **Formatting**: double-quoted strings, 4-space indentation, 120-char line
-  length (enforced by `ruff format` / `ruff check`).
+  length (configured in `ruff format` / `ruff check`).
 - **New tools**: add the tool to the `ToolName` enum and description in
   `tools/manager.py`, register it in `tools/registry.py`, document it in
   `tools/descriptions/`, and route it through the appropriate service via
@@ -166,18 +174,18 @@ checks for test code.
 
 ## Contributing process (see `CONTRIBUTING.MD`)
 
-This project requires opening a **GitHub Discussion before writing code** —
-PRs without prior discussion/approval are auto-closed. When asked to
-implement a feature here (as opposed to a bug fix), mention this requirement
-to the user rather than assuming a PR will be accepted outright. All
-contributions must include tests and documentation updates, follow existing
-code style (ruff/mypy enforced), and use clear commit messages
-(`feat: ...`, `fix: ...` style).
+This repository is a fork. `CONTRIBUTING.MD` is inherited from the upstream
+project, and its "open a GitHub Discussion before writing code" rule applies to
+contributions sent upstream — not to work in this fork, where the owner reviews
+and merges PRs directly. Changes here should still include tests and
+documentation updates, follow the existing code style (ruff/mypy, see above),
+and use clear commit messages (`feat: ...`, `fix: ...` style).
 
 ## CI/CD (`.github/workflows/`)
 
 - `ci.yml` — on push/PR to `main` (and manual): runs unit tests
-  (`pytest -m "not integration"` with coverage) and ruff lint/format checks
+  (`pytest -m "not integration"` with coverage; the only blocking step) and
+  informational ruff lint/format checks
 - `publish.yaml` — on GitHub Release: builds the wheel with `uv` and publishes
   to PyPI via trusted publishing
 - `codeql.yml` — CodeQL security scanning on push/PR to `main` and a weekly schedule
