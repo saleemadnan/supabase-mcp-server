@@ -43,14 +43,16 @@ class FeatureManager:
 
             logger.debug(f"Feature access granted: {feature_name}")
 
+        except FeatureAccessError:
+            # A definitive denial, not an outage. FeatureAccessError subclasses APIError, so it must
+            # be re-raised before the APIError handler would turn it into a FeatureTemporaryError.
+            raise
         except APIError as e:
             logger.error(f"API error checking feature access: {feature_name} - {e}")
             raise FeatureTemporaryError(feature_name, e.status_code, e.response_body) from e
         except Exception as e:
-            if not isinstance(e, FeatureAccessError):
-                logger.error(f"Unexpected error checking feature access: {feature_name} - {e}")
-                raise FeatureTemporaryError(feature_name) from e
-            raise
+            logger.error(f"Unexpected error checking feature access: {feature_name} - {e}")
+            raise FeatureTemporaryError(feature_name) from e
 
     async def execute_tool(self, tool_name: ToolName, services_container: "ServicesContainer", **kwargs: Any) -> Any:
         """Execute a tool with feature access check.

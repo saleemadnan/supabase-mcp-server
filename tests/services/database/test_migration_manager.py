@@ -1,7 +1,11 @@
+import datetime
 import re
+from concurrent.futures import ThreadPoolExecutor
+from types import SimpleNamespace
 
 import pytest
 
+from supabase_mcp.services.database import migration_manager as migration_manager_module
 from supabase_mcp.services.database.migration_manager import MigrationManager
 from supabase_mcp.services.database.sql.validator import SQLValidator
 
@@ -56,7 +60,7 @@ class TestMigrationManager:
         name = migration_manager.generate_descriptive_name(result)
 
         # Check that the name follows the expected format with default schema
-        assert name == "create_users_public_unknown"
+        assert name == "create_users_public_users"
 
     def test_generate_descriptive_name_with_explicit_schema(
         self, mock_validator: SQLValidator, sample_ddl_queries: dict[str, str], migration_manager: MigrationManager
@@ -69,7 +73,7 @@ class TestMigrationManager:
         name = migration_manager.generate_descriptive_name(result)
 
         # Check that the name follows the expected format with explicit schema
-        assert name == "create_users_public_unknown"
+        assert name == "create_users_public_users"
 
     def test_generate_descriptive_name_with_custom_schema(
         self, mock_validator: SQLValidator, sample_ddl_queries: dict[str, str], migration_manager: MigrationManager
@@ -82,7 +86,7 @@ class TestMigrationManager:
         name = migration_manager.generate_descriptive_name(result)
 
         # Check that the name follows the expected format with custom schema
-        assert name == "create_users_app_unknown"
+        assert name == "create_users_app_users"
 
     def test_generate_descriptive_name_with_multiple_statements(
         self,
@@ -143,7 +147,7 @@ class TestMigrationManager:
         name = migration_manager.generate_descriptive_name(result)
 
         # Check that the name follows the expected format for ALTER TABLE
-        assert name == "alter_users_public_unknown"
+        assert name == "alter_users_public_users"
 
     def test_generate_descriptive_name_for_create_function(
         self, mock_validator: SQLValidator, migration_manager: MigrationManager
@@ -689,3 +693,85 @@ class TestMigrationManager:
 
         # This is why the QueryManager needs to call init_migration_schema before
         # attempting to create a migration - to ensure the table exists
+
+
+class _Clock:
+    """Settable stand-in for ``datetime.datetime`` as used by the migration manager."""
+
+    def __init__(self, current: datetime.datetime) -> None:
+        self.current = current
+
+    def now(self) -> datetime.datetime:
+        return self.current
+
+
+@pytest.fixture
+def clock(monkeypatch: pytest.MonkeyPatch) -> _Clock:
+    """Freeze the migration manager's clock and forget versions issued by earlier tests."""
+    frozen = _Clock(datetime.datetime(2026, 11, 7, 12, 0, 0, 250_000))
+    monkeypatch.setattr(
+        migration_manager_module, "datetime", SimpleNamespace(datetime=frozen, timedelta=datetime.timedelta)
+    )
+    monkeypatch.setattr(MigrationManager, "_last_version", None)
+    return frozen
+
+
+def _version_of(migration_query: str) -> str:
+    match = re.search(r"VALUES \('(\d{14})'", migration_query)
+    assert match, migration_query
+    return match.group(1)
+
+
+class TestMigrationVersionUniqueness:
+    """Migration versions are the schema_migrations primary key, so they must never repeat in a process."""
+
+    def test_same_second_versions_are_unique_and_increasing(self, migration_manager: MigrationManager, clock: _Clock):
+        versions = [migration_manager.generate_query_timestamp() for _ in range(3)]
+
+        assert versions == ["20261107120000", "20261107120001", "20261107120002"]
+
+    def test_versions_are_unique_across_instances(self, clock: _Clock):
+        first = MigrationManager().generate_query_timestamp()
+        second = MigrationManager().generate_query_timestamp()
+
+        assert first != second
+        assert second > first
+
+    def test_version_follows_the_clock_once_it_moves_past_the_last_one(
+        self, migration_manager: MigrationManager, clock: _Clock
+    ):
+        assert migration_manager.generate_query_timestamp() == "20261107120000"
+        assert migration_manager.generate_query_timestamp() == "20261107120001"
+
+        clock.current = datetime.datetime(2026, 11, 7, 12, 0, 5)
+
+        assert migration_manager.generate_query_timestamp() == "20261107120005"
+
+    def test_versions_keep_increasing_when_the_clock_goes_backwards(
+        self, migration_manager: MigrationManager, clock: _Clock
+    ):
+        first = migration_manager.generate_query_timestamp()
+        clock.current = datetime.datetime(2026, 11, 7, 11, 59, 0)
+        second = migration_manager.generate_query_timestamp()
+
+        assert (first, second) == ("20261107120000", "20261107120001")
+
+    def test_versions_are_unique_across_threads(self, migration_manager: MigrationManager, clock: _Clock):
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            versions = list(pool.map(lambda _: migration_manager.generate_query_timestamp(), range(200)))
+
+        assert len(set(versions)) == 200
+        assert all(re.fullmatch(r"\d{14}", version) for version in versions)
+
+    def test_create_then_drop_in_the_same_second_get_distinct_ordered_versions(
+        self, migration_manager: MigrationManager, mock_validator: SQLValidator, clock: _Clock
+    ):
+        create_sql = "CREATE TABLE public.t (id int)"
+        drop_sql = "DROP TABLE public.t"
+
+        create_query, _ = migration_manager.prepare_migration_query(
+            mock_validator.validate_query(create_sql), create_sql
+        )
+        drop_query, _ = migration_manager.prepare_migration_query(mock_validator.validate_query(drop_sql), drop_sql)
+
+        assert _version_of(create_query) < _version_of(drop_query)

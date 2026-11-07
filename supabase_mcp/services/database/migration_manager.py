@@ -1,6 +1,8 @@
 import datetime
 import hashlib
 import re
+import threading
+from typing import ClassVar
 
 from supabase_mcp.logger import logger
 from supabase_mcp.services.database.sql.loader import SQLLoader
@@ -13,6 +15,12 @@ from supabase_mcp.services.database.sql.models import (
 
 class MigrationManager:
     """Responsible for preparing migration scripts without executing them."""
+
+    VERSION_FORMAT: ClassVar[str] = "%Y%m%d%H%M%S"
+
+    # Shared by all instances so that versions are unique process-wide
+    _version_lock: ClassVar[threading.Lock] = threading.Lock()
+    _last_version: ClassVar[datetime.datetime | None] = None
 
     def __init__(self, loader: SQLLoader | None = None):
         """Initialize the migration manager with a SQL loader.
@@ -179,8 +187,11 @@ class MigrationManager:
             elif object_type == "type" and statement.query:
                 object_name = self._extract_type_name(statement.query)
             elif statement.query:
-                # For other object types, use a generic extraction
-                object_name = self._extract_generic_object_name(statement.query)
+                # For other object types (the validator reports the relation name for table statements),
+                # prefer the table name before falling back to a generic extraction
+                object_name = self._extract_table_name(statement.query)
+                if object_name == "unknown":
+                    object_name = self._extract_generic_object_name(statement.query)
 
         # Combine parts into a descriptive name
         name = f"{command}_{object_type}_{schema}_{object_name}"
@@ -509,10 +520,22 @@ class MigrationManager:
 
     def generate_query_timestamp(self) -> str:
         """
-        Generate a timestamp for a migration script in the format YYYYMMDDHHMMSS.
+        Generate a unique migration version in the format YYYYMMDDHHMMSS.
+
+        The version is the primary key of ``supabase_migrations.schema_migrations``, so two schema
+        changes within the same second must not share it, or the second migration record is lost.
+        Versions are therefore strictly increasing within the process: when the current second was
+        already used (or the clock moved backwards), the last issued version is bumped by one second.
+        The 14-digit format is kept for compatibility with Supabase CLI migration versions, and stays
+        sortable both numerically and as text.
 
         Returns:
             str: Timestamp string
         """
-        now = datetime.datetime.now()
-        return now.strftime("%Y%m%d%H%M%S")
+        now = datetime.datetime.now().replace(microsecond=0)
+        with MigrationManager._version_lock:
+            last = MigrationManager._last_version
+            if last is not None and now <= last:
+                now = last + datetime.timedelta(seconds=1)
+            MigrationManager._last_version = now
+        return now.strftime(self.VERSION_FORMAT)

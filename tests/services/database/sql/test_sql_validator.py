@@ -527,3 +527,51 @@ class TestSQLValidator:
         # Test whitespace-only query
         with pytest.raises(ValidationError, match="Query cannot be empty"):
             mock_validator.basic_query_validation("   \n   \t   ")
+
+
+class TestStatementTextExtraction:
+    """Statement text must cover every statement, including a final one without a trailing semicolon.
+
+    libpg_query reports ``stmt_len == 0`` for an unterminated last statement ("to the end of the input").
+    Slicing with that length used to yield an empty string, so the statement was silently skipped.
+    """
+
+    @pytest.mark.parametrize(
+        ("query", "expected"),
+        [
+            ("SELECT 1 AS ok", ["SELECT 1 AS ok"]),
+            ("SELECT 1 AS ok;", ["SELECT 1 AS ok"]),
+            ("SELECT 1; SELECT 2", ["SELECT 1", "SELECT 2"]),
+            ("SELECT 1;\n\nSELECT 2   \n", ["SELECT 1", "SELECT 2"]),
+            ("CREATE TABLE t (id int)", ["CREATE TABLE t (id int)"]),
+            ("  SELECT 1 ;  \n", ["SELECT 1"]),
+            ("SELECT 1; -- trailing comment", ["SELECT 1"]),
+            ("SELECT 1 -- trailing comment", ["SELECT 1 -- trailing comment"]),
+            # pglast reports character offsets, so non-ASCII text must not shift the slices
+            ("SELECT 'é'; SELECT 'سليم' AS name", ["SELECT 'é'", "SELECT 'سليم' AS name"]),
+        ],
+    )
+    def test_every_statement_has_its_text(self, mock_validator: SQLValidator, query: str, expected: list[str]):
+        statements = mock_validator.validate_query(query).statements
+        assert [statement.query for statement in statements] == expected
+
+    def test_unterminated_ddl_keeps_its_classification(self, mock_validator: SQLValidator):
+        result = mock_validator.validate_query("SELECT 1; CREATE TABLE public.t (id int)")
+
+        ddl = result.statements[-1]
+        assert ddl.query == "CREATE TABLE public.t (id int)"
+        assert ddl.command == SQLQueryCommand.CREATE
+        assert ddl.needs_migration is True
+        assert result.needs_migration() is True
+
+    @pytest.mark.parametrize(
+        ("query", "location", "length", "expected"),
+        [
+            ("SELECT 1", 0, 0, "SELECT 1"),
+            ("SELECT 1; SELECT 2", 0, 8, "SELECT 1"),
+            ("SELECT 1; SELECT 2", 9, 0, "SELECT 2"),
+            ("SELECT 1; SELECT 2  ;\n", 9, 0, "SELECT 2"),
+        ],
+    )
+    def test_extract_statement_text(self, query: str, location: int, length: int, expected: str):
+        assert SQLValidator.extract_statement_text(query, location, length) == expected
