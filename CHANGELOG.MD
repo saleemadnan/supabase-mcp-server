@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 
+## [Unreleased]
+### Fixed
+- A final SQL statement without a trailing `;` was silently skipped (`execute_postgresql("SELECT 1")` returned `results=[]`, and an unterminated DDL in unsafe mode recorded a migration without running). The statement text now extends to the end of the input.
+- Two schema changes within the same second no longer lose a migration record: migration versions are now unique and increasing within the process (still `YYYYMMDDHHMMSS`).
+- Migration names for `CREATE TABLE`/`ALTER TABLE` now use the table name instead of `unknown` or a trailing keyword.
+- A denied Pro-plan feature now reports the plan message instead of "We couldn't verify access ... at the moment".
+
+
 ## [0.3.12] - 2025-03-12
 ### Added
 - Implemented a new `retrieve_logs` tool that allows retrieval of logs from any Supabase log collection - Postgres, PostgREST, Auth, Edge Functions and others. Provides a way to query and filter

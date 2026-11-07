@@ -202,6 +202,28 @@ class SQLValidator:
         # Try to map the statement type, default to UNKNOWN
         return mapping.get(stmt_type, SQLQueryCommand.UNKNOWN)
 
+    @staticmethod
+    def extract_statement_text(original_query: str, stmt_location: int, stmt_len: int) -> str:
+        """Extract the SQL text of a single statement from the original query.
+
+        libpg_query (via pglast) reports ``stmt_len == 0`` for the last statement when it is not
+        terminated by a semicolon, meaning "up to the end of the input". Slicing with a zero length
+        would yield an empty string and the statement would silently never run.
+
+        pglast reports positions as character offsets (not UTF-8 byte offsets), so they can be used
+        directly to slice the Python string.
+
+        Args:
+            original_query: The full SQL text that was parsed
+            stmt_location: Start offset of the statement
+            stmt_len: Length of the statement, or 0 for "to the end of the input"
+
+        Returns:
+            str: The statement text without surrounding whitespace or a trailing semicolon
+        """
+        end = len(original_query) if stmt_len == 0 else stmt_location + stmt_len
+        return original_query[stmt_location:end].strip().rstrip(";").rstrip()
+
     def validate_statements(self, original_query: str, parse_tree: Any) -> QueryValidationResults:
         """Validate the statements in the parse tree.
 
@@ -269,7 +291,7 @@ class SQLValidator:
                     needs_migration=classification["needs_migration"],
                     object_type=object_type,
                     schema_name=schema_name,
-                    query=original_query[stmt.stmt_location : stmt.stmt_location + stmt.stmt_len]
+                    query=self.extract_statement_text(original_query, stmt.stmt_location, stmt.stmt_len)
                     if hasattr(stmt, "stmt_location") and hasattr(stmt, "stmt_len")
                     else None,
                 )

@@ -12,7 +12,7 @@ from supabase_mcp.services.database.sql.validator import (
     SQLValidator,
     ValidatedStatement,
 )
-from supabase_mcp.services.safety.models import ClientType, OperationRiskLevel
+from supabase_mcp.services.safety.models import ClientType, OperationRiskLevel, SafetyMode
 
 
 @pytest.mark.asyncio(loop_scope="module")
@@ -244,3 +244,44 @@ class TestQueryManager:
         # Verify that execute_query was called at least twice
         # Once for init_migration_schema and once for the migration query
         assert postgres_client.execute_query.call_count >= 2
+
+
+@pytest.mark.unit
+class TestUnterminatedStatements:
+    """A final statement without a trailing semicolon must be executed and recorded with its own text."""
+
+    @staticmethod
+    def _build_query_manager() -> tuple[QueryManager, MagicMock]:
+        postgres_client = MagicMock()
+        postgres_client.execute_query = AsyncMock()
+        safety_manager = MagicMock()
+        safety_manager.get_safety_mode.return_value = SafetyMode.UNSAFE
+        query_manager = QueryManager(postgres_client=postgres_client, safety_manager=safety_manager)
+        return query_manager, postgres_client
+
+    async def test_unterminated_select_is_sent_for_execution(self):
+        query_manager, postgres_client = self._build_query_manager()
+
+        await query_manager.handle_query("SELECT 1 AS ok")
+
+        validated = postgres_client.execute_query.await_args.args[0]
+        assert [statement.query for statement in validated.statements] == ["SELECT 1 AS ok"]
+
+    async def test_unterminated_ddl_is_executed_and_its_migration_named_from_its_text(self):
+        query_manager, postgres_client = self._build_query_manager()
+
+        await query_manager.handle_query("CREATE TABLE t (id int)")
+
+        executed = [call.args[0] for call in postgres_client.execute_query.await_args_list]
+        # init migrations schema, record the migration, then run the DDL itself
+        assert len(executed) == 3
+        migration_record, ddl = executed[1], executed[2]
+
+        assert [statement.query for statement in ddl.statements] == ["CREATE TABLE t (id int)"]
+        assert ddl.statements[0].needs_migration is True
+
+        record_sql = migration_record.statements[0].query
+        assert "INSERT INTO supabase_migrations.schema_migrations" in record_sql
+        assert "ARRAY['CREATE TABLE t (id int)']" in record_sql
+        # With the empty statement text the generated name used to be "create_t_public_unknown"
+        assert "'create_t_public_t'" in record_sql

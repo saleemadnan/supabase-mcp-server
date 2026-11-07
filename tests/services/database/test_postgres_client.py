@@ -1,3 +1,7 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from unittest.mock import AsyncMock, MagicMock
+
 import asyncpg
 import pytest
 
@@ -7,6 +11,7 @@ from supabase_mcp.services.database.sql.validator import (
     QueryValidationResults,
     SQLQueryCategory,
     SQLQueryCommand,
+    SQLValidator,
     ValidatedStatement,
 )
 from supabase_mcp.services.safety.models import OperationRiskLevel
@@ -379,3 +384,42 @@ class TestPostgresClient:
 
         # Verify the error message indicates a connection failure after retries
         assert "Could not connect to database" in str(exc_info.value)
+
+
+@pytest.mark.unit
+class TestExecuteQueryUnit:
+    """Unit tests for execute_query with a fake connection (no database needed)."""
+
+    @staticmethod
+    def _client_with_fake_connection(fetch_results: list[list[dict[str, int]]]) -> tuple[PostgresClient, AsyncMock]:
+        @asynccontextmanager
+        async def transaction(readonly: bool = False) -> AsyncIterator[None]:
+            yield
+
+        conn = MagicMock()
+        conn.fetch = AsyncMock(side_effect=fetch_results)
+        conn.transaction = transaction
+
+        async def with_connection(operation):
+            return await operation(conn)
+
+        # Bypass __init__: no settings or pool are needed to exercise the statement loop
+        client = PostgresClient.__new__(PostgresClient)
+        client.with_connection = with_connection
+        return client, conn.fetch
+
+    async def test_unterminated_final_statement_is_executed(self, mock_validator: SQLValidator):
+        client, fetch = self._client_with_fake_connection([[{"ok": 1}]])
+
+        result = await client.execute_query(mock_validator.validate_query("SELECT 1 AS ok"))
+
+        fetch.assert_awaited_once_with("SELECT 1 AS ok")
+        assert result == QueryResult(results=[StatementResult(rows=[{"ok": 1}])])
+
+    async def test_every_statement_of_an_unterminated_batch_is_executed(self, mock_validator: SQLValidator):
+        client, fetch = self._client_with_fake_connection([[{"a": 1}], [{"b": 2}]])
+
+        result = await client.execute_query(mock_validator.validate_query("SELECT 1 AS a; SELECT 2 AS b"))
+
+        assert [call.args[0] for call in fetch.await_args_list] == ["SELECT 1 AS a", "SELECT 2 AS b"]
+        assert len(result.results) == 2
