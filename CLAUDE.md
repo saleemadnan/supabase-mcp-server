@@ -127,6 +127,11 @@ uv run pytest -m integration                                  # integration test
 - Mark integration tests (anything touching a real Postgres connection or
   external API) with `@pytest.mark.integration`; they're excluded by default
   via `addopts = "-m 'not integration'"`.
+- To check the real server end to end over MCP stdio, run
+  `uv run python .claude/skills/run-supabase-mcp/driver.py`. It covers boot,
+  tool registration, the feature-access gate, and the SQL safety chain against
+  a throwaway local PostgreSQL, with no credentials and no external calls. See
+  `.claude/skills/run-supabase-mcp/SKILL.md` for details and known issues.
 
 ### Linting, formatting, typing
 
