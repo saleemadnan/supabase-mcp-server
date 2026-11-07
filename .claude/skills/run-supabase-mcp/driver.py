@@ -51,7 +51,7 @@ from mcp import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 
 REPO = Path(__file__).resolve().parents[3]
-PG_PASSWORD = "postgres"  # same default the server assumes for local projects
+PG_PASSWORD = "postgres"  # the server's local default; ignored by the trust-auth throwaway cluster
 STUB_KEY = "driver-local-stub"
 CALL_TIMEOUT = timedelta(seconds=60)
 
@@ -205,14 +205,11 @@ class ThrowawayPostgres:
             raise RuntimeError(f"{args[0]} failed ({out.returncode}):\n{out.stdout}{out.stderr}\n{tail(self.log)}")
 
     def start(self) -> None:
-        pwfile = self.dir / "pwfile"
-        pwfile.write_text(PG_PASSWORD + "\n")
-        pwfile.chmod(0o600)
-        if self._owner:
-            os.chown(pwfile, *self._owner)
+        # trust auth: no secret is created or stored. The cluster holds no data, listens only on
+        # 127.0.0.1 (random port) and a socket inside its own 0700 temp dir, and lives for one run.
         self._run(
-            "initdb", "-D", str(self.data), "-U", "postgres", "--auth=scram-sha-256",
-            f"--pwfile={pwfile}", "--no-locale", "-E", "UTF8", "--no-sync",
+            "initdb", "-D", str(self.data), "-U", "postgres", "--auth=trust",
+            "--no-locale", "-E", "UTF8", "--no-sync",
         )  # fmt: skip
         opts = f"-c listen_addresses=127.0.0.1 -p {self.port} -k {self.dir} -c fsync=off"
         self._run("pg_ctl", "-D", str(self.data), "-l", str(self.log), "-o", opts, "-w", "-t", "60", "start")
