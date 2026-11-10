@@ -156,7 +156,10 @@ class ToolRegistry:
         async def confirm_destructive_operation(
             operation_type: Literal["api", "database", "meta"], confirmation_id: str, user_confirmation: bool = False
         ) -> QueryResult | dict[str, Any]:
-            """Execute a destructive operation after confirmation. Use this only after reviewing the risks with the user."""
+            """Execute a destructive operation after confirmation.
+
+            Use this only after reviewing the risks with the user.
+            """
             return await feature_manager.execute_tool(
                 ToolName.CONFIRM_DESTRUCTIVE_OPERATION,
                 services_container=services_container,
@@ -225,18 +228,26 @@ class ToolRegistry:
         async def meta_get_campaign(campaign_id: str, account_id: str = "") -> dict[str, Any]:
             """Get a specific Meta campaign."""
             return await feature_manager.execute_tool(
-                ToolName.META_GET_CAMPAIGN, services_container=services_container, campaign_id=campaign_id, account_id=account_id
+                ToolName.META_GET_CAMPAIGN,
+                services_container=services_container,
+                campaign_id=campaign_id,
+                account_id=account_id,
             )
 
         @mcp.tool(description=tool_manager.get_description(ToolName.META_CREATE_CAMPAIGN))  # type: ignore
         async def meta_create_campaign(campaign: dict[str, Any], account_id: str = "") -> dict[str, Any]:
             """Create a new Meta advertising campaign."""
             return await feature_manager.execute_tool(
-                ToolName.META_CREATE_CAMPAIGN, services_container=services_container, campaign=campaign, account_id=account_id
+                ToolName.META_CREATE_CAMPAIGN,
+                services_container=services_container,
+                campaign=campaign,
+                account_id=account_id,
             )
 
         @mcp.tool(description=tool_manager.get_description(ToolName.META_UPDATE_CAMPAIGN))  # type: ignore
-        async def meta_update_campaign(campaign_id: str, updates: dict[str, Any], account_id: str = "") -> dict[str, Any]:
+        async def meta_update_campaign(
+            campaign_id: str, updates: dict[str, Any], account_id: str = ""
+        ) -> dict[str, Any]:
             """Update an existing Meta campaign."""
             return await feature_manager.execute_tool(
                 ToolName.META_UPDATE_CAMPAIGN,
@@ -250,7 +261,10 @@ class ToolRegistry:
         async def meta_delete_campaign(campaign_id: str, account_id: str = "") -> dict[str, Any]:
             """Delete a Meta campaign."""
             return await feature_manager.execute_tool(
-                ToolName.META_DELETE_CAMPAIGN, services_container=services_container, campaign_id=campaign_id, account_id=account_id
+                ToolName.META_DELETE_CAMPAIGN,
+                services_container=services_container,
+                campaign_id=campaign_id,
+                account_id=account_id,
             )
 
         @mcp.tool(description=tool_manager.get_description(ToolName.META_TOGGLE_CAMPAIGN))  # type: ignore
@@ -304,7 +318,10 @@ class ToolRegistry:
         async def meta_delete_adset(adset_id: str, account_id: str = "") -> dict[str, Any]:
             """Delete a Meta ad set."""
             return await feature_manager.execute_tool(
-                ToolName.META_DELETE_ADSET, services_container=services_container, adset_id=adset_id, account_id=account_id
+                ToolName.META_DELETE_ADSET,
+                services_container=services_container,
+                adset_id=adset_id,
+                account_id=account_id,
             )
 
         @mcp.tool(description=tool_manager.get_description(ToolName.META_LIST_ADS))  # type: ignore
@@ -354,11 +371,16 @@ class ToolRegistry:
         async def meta_get_account_insights(account_id: str = "", insights: dict[str, Any] = {}) -> dict[str, Any]:
             """Get Meta ad account performance insights."""
             return await feature_manager.execute_tool(
-                ToolName.META_GET_ACCOUNT_INSIGHTS, services_container=services_container, account_id=account_id, insights=insights
+                ToolName.META_GET_ACCOUNT_INSIGHTS,
+                services_container=services_container,
+                account_id=account_id,
+                insights=insights,
             )
 
         @mcp.tool(description=tool_manager.get_description(ToolName.META_GET_CAMPAIGN_INSIGHTS))  # type: ignore
-        async def meta_get_campaign_insights(campaign_id: str, account_id: str = "", insights: dict[str, Any] = {}) -> dict[str, Any]:
+        async def meta_get_campaign_insights(
+            campaign_id: str, account_id: str = "", insights: dict[str, Any] = {}
+        ) -> dict[str, Any]:
             """Get Meta campaign performance insights."""
             return await feature_manager.execute_tool(
                 ToolName.META_GET_CAMPAIGN_INSIGHTS,
@@ -369,7 +391,9 @@ class ToolRegistry:
             )
 
         @mcp.tool(description=tool_manager.get_description(ToolName.META_GET_ADSET_INSIGHTS))  # type: ignore
-        async def meta_get_adset_insights(adset_id: str, account_id: str = "", insights: dict[str, Any] = {}) -> dict[str, Any]:
+        async def meta_get_adset_insights(
+            adset_id: str, account_id: str = "", insights: dict[str, Any] = {}
+        ) -> dict[str, Any]:
             """Get Meta ad set performance insights."""
             return await feature_manager.execute_tool(
                 ToolName.META_GET_ADSET_INSIGHTS,
@@ -380,7 +404,9 @@ class ToolRegistry:
             )
 
         @mcp.tool(description=tool_manager.get_description(ToolName.META_GET_AD_INSIGHTS))  # type: ignore
-        async def meta_get_ad_insights(ad_id: str, account_id: str = "", insights: dict[str, Any] = {}) -> dict[str, Any]:
+        async def meta_get_ad_insights(
+            ad_id: str, account_id: str = "", insights: dict[str, Any] = {}
+        ) -> dict[str, Any]:
             """Get Meta ad performance insights."""
             return await feature_manager.execute_tool(
                 ToolName.META_GET_AD_INSIGHTS,
@@ -401,7 +427,10 @@ class ToolRegistry:
         async def meta_create_creative(creative_data: dict[str, Any], account_id: str = "") -> dict[str, Any]:
             """Create a new Meta ad creative."""
             return await feature_manager.execute_tool(
-                ToolName.META_CREATE_CREATIVE, services_container=services_container, creative_data=creative_data, account_id=account_id
+                ToolName.META_CREATE_CREATIVE,
+                services_container=services_container,
+                creative_data=creative_data,
+                account_id=account_id,
             )
 
         @mcp.tool(description=tool_manager.get_description(ToolName.META_EXCHANGE_TOKEN))  # type: ignore

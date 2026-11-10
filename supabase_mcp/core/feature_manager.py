@@ -255,7 +255,10 @@ class FeatureManager:
         return result
 
     async def live_dangerously(
-        self, container: "ServicesContainer", service: Literal["api", "database", "meta"], enable_unsafe_mode: bool = False
+        self,
+        container: "ServicesContainer",
+        service: Literal["api", "database", "meta"],
+        enable_unsafe_mode: bool = False,
     ) -> dict[str, Any]:
         """
         Toggle between safe and unsafe operation modes for API, Database, or Meta services.
@@ -319,7 +322,9 @@ class FeatureManager:
     ) -> dict[str, Any]:
         """Retrieve logs from your Supabase project's services for debugging and monitoring."""
         logger.info(
-            f"Tool called: retrieve_logs(collection={collection}, limit={limit}, hours_ago={hours_ago}, filters={filters}, search={search}, custom_query={'<custom>' if custom_query else None})"
+            f"Tool called: retrieve_logs(collection={collection}, limit={limit}, "
+            f"hours_ago={hours_ago}, filters={filters}, search={search}, "
+            f"custom_query={'<custom>' if custom_query else None})"
         )
 
         api_manager = container.api_manager
@@ -348,6 +353,7 @@ class FeatureManager:
             safety_manager.validate_operation(ClientType.META, operation)
         except _CRE as exc:
             import re as _re
+
             m = _re.search(r"ID: (\S+)", str(exc))
             conf_id = m.group(1) if m else "?"
             raise _CRE(
@@ -400,12 +406,7 @@ class FeatureManager:
             "act_1198372168168124": "طعم ابوغزالة",
             "act_968620118865243": "Yazan Ali",
         }
-        return {
-            "linked_accounts": [
-                {"account_id": aid, "name": account_names.get(aid, aid)}
-                for aid in managers
-            ]
-        }
+        return {"linked_accounts": [{"account_id": aid, "name": account_names.get(aid, aid)} for aid in managers]}
 
     async def meta_get_account_info(self, container: "ServicesContainer", account_id: str = "") -> dict[str, Any]:
         return await self._meta_manager(container, account_id).get_account_info()
@@ -415,10 +416,14 @@ class FeatureManager:
     ) -> dict[str, Any]:
         return await self._meta_manager(container).list_campaigns(status_filter=status_filter, limit=limit)
 
-    async def meta_get_campaign(self, container: "ServicesContainer", campaign_id: str, account_id: str = "") -> dict[str, Any]:
+    async def meta_get_campaign(
+        self, container: "ServicesContainer", campaign_id: str, account_id: str = ""
+    ) -> dict[str, Any]:
         return await self._meta_manager(container, account_id).get_campaign(campaign_id)
 
-    async def meta_create_campaign(self, container: "ServicesContainer", campaign: dict[str, Any], account_id: str = "") -> dict[str, Any]:
+    async def meta_create_campaign(
+        self, container: "ServicesContainer", campaign: dict[str, Any], account_id: str = ""
+    ) -> dict[str, Any]:
         self._meta_safety_check(container, "meta_create_campaign")
         from supabase_mcp.services.meta_ads.models import CreateCampaignRequest
 
@@ -430,9 +435,13 @@ class FeatureManager:
         self._meta_safety_check(container, "meta_update_campaign")
         from supabase_mcp.services.meta_ads.models import UpdateCampaignRequest
 
-        return await self._meta_manager(container, account_id).update_campaign(campaign_id, UpdateCampaignRequest(**updates))
+        return await self._meta_manager(container, account_id).update_campaign(
+            campaign_id, UpdateCampaignRequest(**updates)
+        )
 
-    async def meta_delete_campaign(self, container: "ServicesContainer", campaign_id: str, account_id: str = "") -> dict[str, Any]:
+    async def meta_delete_campaign(
+        self, container: "ServicesContainer", campaign_id: str, account_id: str = ""
+    ) -> dict[str, Any]:
         self._meta_safety_check(container, "meta_delete_campaign", campaign_id=campaign_id)
         return await self._meta_manager(container, account_id).delete_campaign(campaign_id)
 
@@ -447,10 +456,14 @@ class FeatureManager:
     ) -> dict[str, Any]:
         return await self._meta_manager(container, account_id).list_adsets(campaign_id=campaign_id, limit=limit)
 
-    async def meta_get_adset(self, container: "ServicesContainer", adset_id: str, account_id: str = "") -> dict[str, Any]:
+    async def meta_get_adset(
+        self, container: "ServicesContainer", adset_id: str, account_id: str = ""
+    ) -> dict[str, Any]:
         return await self._meta_manager(container, account_id).get_adset(adset_id)
 
-    async def meta_create_adset(self, container: "ServicesContainer", adset: dict[str, Any], account_id: str = "") -> dict[str, Any]:
+    async def meta_create_adset(
+        self, container: "ServicesContainer", adset: dict[str, Any], account_id: str = ""
+    ) -> dict[str, Any]:
         self._meta_safety_check(container, "meta_create_adset")
         from supabase_mcp.services.meta_ads.models import CreateAdSetRequest
 
@@ -462,7 +475,9 @@ class FeatureManager:
         self._meta_safety_check(container, "meta_update_adset")
         return await self._meta_manager(container, account_id).update_adset(adset_id, updates)
 
-    async def meta_delete_adset(self, container: "ServicesContainer", adset_id: str, account_id: str = "") -> dict[str, Any]:
+    async def meta_delete_adset(
+        self, container: "ServicesContainer", adset_id: str, account_id: str = ""
+    ) -> dict[str, Any]:
         self._meta_safety_check(container, "meta_delete_adset", adset_id=adset_id)
         return await self._meta_manager(container, account_id).delete_adset(adset_id)
 
@@ -474,7 +489,9 @@ class FeatureManager:
     async def meta_get_ad(self, container: "ServicesContainer", ad_id: str, account_id: str = "") -> dict[str, Any]:
         return await self._meta_manager(container, account_id).get_ad(ad_id)
 
-    async def meta_create_ad(self, container: "ServicesContainer", ad: dict[str, Any], account_id: str = "") -> dict[str, Any]:
+    async def meta_create_ad(
+        self, container: "ServicesContainer", ad: dict[str, Any], account_id: str = ""
+    ) -> dict[str, Any]:
         self._meta_safety_check(container, "meta_create_ad")
         from supabase_mcp.services.meta_ads.models import CreateAdRequest
 
@@ -502,7 +519,9 @@ class FeatureManager:
     ) -> dict[str, Any]:
         from supabase_mcp.services.meta_ads.models import InsightsRequest
 
-        return await self._meta_manager(container, account_id).get_campaign_insights(campaign_id, InsightsRequest(**insights))
+        return await self._meta_manager(container, account_id).get_campaign_insights(
+            campaign_id, InsightsRequest(**insights)
+        )
 
     async def meta_get_adset_insights(
         self, container: "ServicesContainer", adset_id: str, insights: dict[str, Any] = {}, account_id: str = ""
@@ -518,7 +537,9 @@ class FeatureManager:
 
         return await self._meta_manager(container, account_id).get_ad_insights(ad_id, InsightsRequest(**insights))
 
-    async def meta_list_creatives(self, container: "ServicesContainer", limit: int = 25, account_id: str = "") -> dict[str, Any]:
+    async def meta_list_creatives(
+        self, container: "ServicesContainer", limit: int = 25, account_id: str = ""
+    ) -> dict[str, Any]:
         return await self._meta_manager(container, account_id).list_creatives(limit=limit)
 
     async def meta_create_creative(
@@ -527,9 +548,7 @@ class FeatureManager:
         self._meta_safety_check(container, "meta_create_creative")
         return await self._meta_manager(container, account_id).create_creative(creative_data)
 
-    async def meta_exchange_token(
-        self, container: "ServicesContainer", short_lived_token: str
-    ) -> dict[str, Any]:
+    async def meta_exchange_token(self, container: "ServicesContainer", short_lived_token: str) -> dict[str, Any]:
         client = container.meta_ads_client  # type: ignore[attr-defined]
         if client is None:
             from supabase_mcp.exceptions import APIClientError

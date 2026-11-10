@@ -49,6 +49,7 @@ def _get_client() -> MetaAdsClient:
 
 # ── API helpers ──────────────────────────────────────────────────────────────
 
+
 def api_get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
     return asyncio.run(_get_client().get(path, params))
 
@@ -460,6 +461,7 @@ loadCampaigns();
 
 # ── HTTP handler ──────────────────────────────────────────────────────────────
 
+
 class DashboardHandler(BaseHTTPRequestHandler):
     def log_message(self, fmt: str, *args: Any) -> None:  # suppress default logs
         pass
@@ -496,35 +498,47 @@ class DashboardHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/api/campaigns":
-            result = api_get(f"/{AD_ACCOUNT_ID}/campaigns", {
-                "fields": "id,name,status,objective,daily_budget,lifetime_budget",
-                "limit": "50",
-            })
+            result = api_get(
+                f"/{AD_ACCOUNT_ID}/campaigns",
+                {
+                    "fields": "id,name,status,objective,daily_budget,lifetime_budget",
+                    "limit": "50",
+                },
+            )
             self._send_json(result)
             return
 
         if path == "/api/adsets":
-            result = api_get(f"/{AD_ACCOUNT_ID}/adsets", {
-                "fields": "id,name,status,campaign_id,daily_budget,optimization_goal",
-                "limit": "50",
-            })
+            result = api_get(
+                f"/{AD_ACCOUNT_ID}/adsets",
+                {
+                    "fields": "id,name,status,campaign_id,daily_budget,optimization_goal",
+                    "limit": "50",
+                },
+            )
             self._send_json(result)
             return
 
         if path == "/api/ads":
-            result = api_get(f"/{AD_ACCOUNT_ID}/ads", {
-                "fields": "id,name,status,adset_id",
-                "limit": "50",
-            })
+            result = api_get(
+                f"/{AD_ACCOUNT_ID}/ads",
+                {
+                    "fields": "id,name,status,adset_id",
+                    "limit": "50",
+                },
+            )
             self._send_json(result)
             return
 
         if path == "/api/insights":
             preset = qs.get("date_preset", ["last_7d"])[0]
-            result = api_get(f"/{AD_ACCOUNT_ID}/insights", {
-                "fields": "impressions,clicks,spend,reach,cpc,cpm,ctr,frequency",
-                "date_preset": preset,
-            })
+            result = api_get(
+                f"/{AD_ACCOUNT_ID}/insights",
+                {
+                    "fields": "impressions,clicks,spend,reach,cpc,cpm,ctr,frequency",
+                    "date_preset": preset,
+                },
+            )
             self._send_json(result)
             return
 

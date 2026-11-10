@@ -69,7 +69,8 @@ class TestLogManager:
                 12,
                 None,
                 "upload",
-                "WHERE storage_logs.timestamp > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 12 HOUR) AND event_message LIKE '%upload%'",
+                "WHERE storage_logs.timestamp > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 12 HOUR) "
+                "AND event_message LIKE '%upload%'",
             ),
             # Test with all parameters
             (
@@ -77,7 +78,8 @@ class TestLogManager:
                 6,
                 [{"field": "response.status_code", "operator": ">", "value": 400}],
                 "timeout",
-                "WHERE function_edge_logs.timestamp > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 6 HOUR) AND event_message LIKE '%timeout%' AND response.status_code > 400",
+                "WHERE function_edge_logs.timestamp > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 6 "
+                "HOUR) AND event_message LIKE '%timeout%' AND response.status_code > 400",
             ),
             # Test with cron logs (special case)
             (
@@ -93,7 +95,8 @@ class TestLogManager:
                 12,
                 [{"field": "parsed.error_severity", "operator": "=", "value": "ERROR"}],
                 "failed",
-                "AND postgres_logs.timestamp > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 12 HOUR) AND event_message LIKE '%failed%' AND parsed.error_severity = 'ERROR'",
+                "AND postgres_logs.timestamp > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 12 HOUR) "
+                "AND event_message LIKE '%failed%' AND parsed.error_severity = 'ERROR'",
             ),
         ],
     )
@@ -136,7 +139,10 @@ class TestLogManager:
         """Test building a standard logs query."""
         log_manager = LogManager()
         mock_build_where_clause.return_value = "WHERE timestamp > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR)"
-        mock_get_logs_query.return_value = "SELECT * FROM postgres_logs WHERE timestamp > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR) LIMIT 20"
+        mock_get_logs_query.return_value = (
+            "SELECT * FROM postgres_logs WHERE timestamp > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), "
+            "INTERVAL 24 HOUR) LIMIT 20"
+        )
 
         query = log_manager.build_logs_query(
             collection="postgres",
@@ -160,8 +166,8 @@ class TestLogManager:
         )
 
         assert (
-            query
-            == "SELECT * FROM postgres_logs WHERE timestamp > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR) LIMIT 20"
+            query == "SELECT * FROM postgres_logs WHERE timestamp > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), "
+            "INTERVAL 24 HOUR) LIMIT 20"
         )
 
     @patch.object(SQLLoader, "get_logs_query")

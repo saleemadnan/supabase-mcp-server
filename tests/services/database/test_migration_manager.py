@@ -467,13 +467,15 @@ class TestMigrationManager:
         # Test CREATE DOMAIN
         assert (
             extract_type_name(
-                "CREATE DOMAIN email_address AS TEXT CHECK (VALUE ~ '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');"
+                "CREATE DOMAIN email_address AS TEXT CHECK (VALUE ~ "
+                "'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');"
             )
             == "email_address"
         )
         assert (
             extract_type_name(
-                "CREATE DOMAIN public.email_address AS TEXT CHECK (VALUE ~ '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');"
+                "CREATE DOMAIN public.email_address AS TEXT CHECK (VALUE ~ "
+                "'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');"
             )
             == "email_address"
         )
@@ -506,7 +508,10 @@ class TestMigrationManager:
         assert result == ""  # Accept the actual behavior
 
         # Test with more than 3 columns
-        many_columns_query = "UPDATE users SET name = 'John', email = 'john@example.com', active = true, created_at = NOW(), updated_at = NOW() WHERE id = 1;"
+        many_columns_query = (
+            "UPDATE users SET name = 'John', email = 'john@example.com', active = true, created_at = "
+            "NOW(), updated_at = NOW() WHERE id = 1;"
+        )
         result = extract_update_columns(many_columns_query)
         assert result == ""  # Accept the actual behavior
 

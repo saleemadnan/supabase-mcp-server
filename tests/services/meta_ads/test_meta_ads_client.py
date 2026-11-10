@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
@@ -22,7 +21,6 @@ from supabase_mcp.services.meta_ads.models import (
     OptimizationGoal,
     UpdateCampaignRequest,
 )
-
 
 # ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -133,7 +131,9 @@ class TestMetaAdsClient:
             with patch.object(client, "prepare_request", return_value=MagicMock()):
                 with patch.object(client, "send_request", new_callable=AsyncMock, return_value=error_response):
                     with patch.object(client, "parse_response", return_value={"error": {"message": "Invalid token"}}):
-                        with patch.object(client, "handle_error_response", side_effect=APIClientError("Invalid token", 400)):
+                        with patch.object(
+                            client, "handle_error_response", side_effect=APIClientError("Invalid token", 400)
+                        ):
                             with pytest.raises(APIClientError):
                                 await client.exchange_token("bad_token")
 
@@ -318,47 +318,47 @@ class TestMetaAdsCampaignManager:
 @pytest.mark.unit
 class TestMetaSafetyConfig:
     def test_read_ops_are_low_risk(self) -> None:
-        from supabase_mcp.services.safety.safety_configs import MetaSafetyConfig
         from supabase_mcp.services.safety.models import OperationRiskLevel
+        from supabase_mcp.services.safety.safety_configs import MetaSafetyConfig
 
         cfg = MetaSafetyConfig()
         for op in ["meta_get_account_info", "meta_list_campaigns", "meta_get_campaign_insights"]:
             assert cfg.get_risk_level(op) == OperationRiskLevel.LOW
 
     def test_write_ops_are_medium_risk(self) -> None:
-        from supabase_mcp.services.safety.safety_configs import MetaSafetyConfig
         from supabase_mcp.services.safety.models import OperationRiskLevel
+        from supabase_mcp.services.safety.safety_configs import MetaSafetyConfig
 
         cfg = MetaSafetyConfig()
         for op in ["meta_create_campaign", "meta_update_campaign", "meta_toggle_campaign", "meta_create_adset"]:
             assert cfg.get_risk_level(op) == OperationRiskLevel.MEDIUM
 
     def test_delete_ops_are_high_risk(self) -> None:
-        from supabase_mcp.services.safety.safety_configs import MetaSafetyConfig
         from supabase_mcp.services.safety.models import OperationRiskLevel
+        from supabase_mcp.services.safety.safety_configs import MetaSafetyConfig
 
         cfg = MetaSafetyConfig()
         for op in ["meta_delete_campaign", "meta_delete_adset", "meta_delete_ad"]:
             assert cfg.get_risk_level(op) == OperationRiskLevel.HIGH
 
     def test_tuple_operation_extracts_tool_name(self) -> None:
-        from supabase_mcp.services.safety.safety_configs import MetaSafetyConfig
         from supabase_mcp.services.safety.models import OperationRiskLevel
+        from supabase_mcp.services.safety.safety_configs import MetaSafetyConfig
 
         cfg = MetaSafetyConfig()
         assert cfg.get_risk_level(("meta_delete_campaign", {"campaign_id": "123"})) == OperationRiskLevel.HIGH
         assert cfg.get_risk_level(("meta_list_campaigns", {})) == OperationRiskLevel.LOW
 
     def test_unknown_op_defaults_to_medium(self) -> None:
-        from supabase_mcp.services.safety.safety_configs import MetaSafetyConfig
         from supabase_mcp.services.safety.models import OperationRiskLevel
+        from supabase_mcp.services.safety.safety_configs import MetaSafetyConfig
 
         cfg = MetaSafetyConfig()
         assert cfg.get_risk_level("meta_unknown_tool") == OperationRiskLevel.MEDIUM
 
     def test_write_op_blocked_in_safe_mode(self) -> None:
         from supabase_mcp.exceptions import OperationNotAllowedError
-        from supabase_mcp.services.safety.models import ClientType, SafetyMode
+        from supabase_mcp.services.safety.models import ClientType
         from supabase_mcp.services.safety.safety_manager import SafetyManager
 
         SafetyManager.reset()

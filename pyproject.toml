@@ -63,6 +63,8 @@ version-file = "supabase_mcp/_version.py"
 [tool.ruff]
 target-version = "py312"
 line-length = 120
+
+[tool.ruff.lint]
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -73,6 +75,16 @@ select = [
     "UP",  # pyupgrade
 ]
 ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+# Long literal strings (API specs, safety reasons, HTML/SQL templates) - wrapping them hurts readability.
+"supabase_mcp/services/safety/safety_configs.py" = ["E501"]
+"supabase_mcp/services/sdk/auth_admin_sdk_spec.py" = ["E501"]
+"meta_dashboard.py" = ["E501"]
+# `= {}` / `= []` defaults here are never mutated; they define the published MCP tool schemas
+# (changing them to None would alter each tool's input schema).
+"supabase_mcp/tools/registry.py" = ["B006"]
+"supabase_mcp/core/feature_manager.py" = ["B006"]
 
 [tool.ruff.format]
 quote-style = "double"

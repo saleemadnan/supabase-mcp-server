@@ -374,7 +374,7 @@ class TestSDKClientIntegration:
             try:
                 await sdk_client_integration.call_auth_admin_method("delete_factor", delete_factor_params)
                 # If it succeeds (unlikely), we should assert something
-                assert False, "delete_factor should not succeed as it's not implemented"
+                raise AssertionError("delete_factor should not succeed as it's not implemented")
             except PythonSDKError as e:
                 # We expect this to fail with a specific error message
                 assert "not implemented" in str(e).lower() or "method not found" in str(e).lower()

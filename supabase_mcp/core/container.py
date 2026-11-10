@@ -114,9 +114,7 @@ class ServicesContainer:
                     "act_1198372168168124": "طعم ابوغزالة",
                     "act_968620118865243": "Yazan Ali",
                 }
-                linked = ", ".join(
-                    f"{names.get(a, a)} ({a})" for a in account_ids
-                )
+                linked = ", ".join(f"{names.get(a, a)} ({a})" for a in account_ids)
                 logger.info(f"✓ Meta Ads integration initialised — linked accounts: {linked}")
             else:
                 logger.warning("No META_AD_ACCOUNT_ID(S) set — Meta campaign tools will be unavailable.")

@@ -21,7 +21,8 @@ def sample_dml_queries() -> dict[str, str]:
         "insert_with_select": "INSERT INTO user_backup SELECT * FROM users",
         "simple_update": "UPDATE users SET active = true WHERE id = 1",
         "simple_delete": "DELETE FROM users WHERE id = 1",
-        "merge_statement": "MERGE INTO users u USING temp_users t ON (u.id = t.id) WHEN MATCHED THEN UPDATE SET name = t.name",
+        "merge_statement": "MERGE INTO users u USING temp_users t ON (u.id = t.id) WHEN MATCHED THEN UPDATE SET name = "
+        "t.name",
     }
 
 

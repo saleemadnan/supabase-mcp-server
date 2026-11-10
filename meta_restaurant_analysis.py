@@ -30,28 +30,29 @@ if _env_file.exists():
 import httpx  # noqa: E402 — after env load
 
 # ── config ────────────────────────────────────────────────────────────────────
-APP_ID       = os.environ.get("META_APP_ID", "3068615529961297")
-APP_SECRET   = os.environ.get("META_APP_SECRET", "")
+APP_ID = os.environ.get("META_APP_ID", "3068615529961297")
+APP_SECRET = os.environ.get("META_APP_SECRET", "")
 ACCESS_TOKEN = os.environ.get("META_ACCESS_TOKEN", "")
-ACCOUNT_ID   = os.environ.get("META_AD_ACCOUNT_ID", "act_1198372168168124")
-API_VERSION  = os.environ.get("META_API_VERSION", "v21.0")
-BASE_URL     = f"https://graph.facebook.com/{API_VERSION}"
+ACCOUNT_ID = os.environ.get("META_AD_ACCOUNT_ID", "act_1198372168168124")
+API_VERSION = os.environ.get("META_API_VERSION", "v21.0")
+BASE_URL = f"https://graph.facebook.com/{API_VERSION}"
 
 RESTAURANT_NAME = "طعم ابوغزالة"
 
 # ── colours ───────────────────────────────────────────────────────────────────
-GREEN  = "\033[92m"
+GREEN = "\033[92m"
 YELLOW = "\033[93m"
-RED    = "\033[91m"
-CYAN   = "\033[96m"
-BOLD   = "\033[1m"
-RESET  = "\033[0m"
+RED = "\033[91m"
+CYAN = "\033[96m"
+BOLD = "\033[1m"
+RESET = "\033[0m"
 
-SEP  = "─" * 65
+SEP = "─" * 65
 SEP2 = "═" * 65
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
+
 
 def fmt_currency(val: str | float | None, currency: str = "SAR") -> str:
     if val is None:
@@ -85,6 +86,7 @@ def subsection(title: str) -> None:
 
 # ── API client ────────────────────────────────────────────────────────────────
 
+
 def _parse_response(r: httpx.Response) -> dict:
     ct = r.headers.get("content-type", "")
     if "application/json" in ct:
@@ -96,10 +98,10 @@ def _parse_response(r: httpx.Response) -> dict:
 
 
 def _handle_api_error(method: str, path: str, r: httpx.Response, data: dict) -> None:
-    err  = data.get("error", {})
-    msg  = err.get("message") or r.text[:300]
+    err = data.get("error", {})
+    msg = err.get("message") or r.text[:300]
     code = err.get("code", r.status_code)
-    sub  = err.get("error_subcode", "")
+    sub = err.get("error_subcode", "")
     label = f"[{code}/{sub}]" if sub else f"[{code}]"
     print(f"  {RED}{method} {path} → API Error {label}: {msg}{RESET}")
     # Token-related errors
@@ -129,7 +131,7 @@ async def api_get(client: httpx.AsyncClient, path: str, params: dict | None = No
 
 
 async def api_post(client: httpx.AsyncClient, path: str, body: dict) -> dict:
-    payload = {k: (json.dumps(v) if isinstance(v, (dict, list)) else str(v)) for k, v in body.items()}
+    payload = {k: (json.dumps(v) if isinstance(v, dict | list) else str(v)) for k, v in body.items()}
     payload["access_token"] = ACCESS_TOKEN
     try:
         r = await client.post(
@@ -169,9 +171,9 @@ async def refresh_token_cmd() -> None:
     print(f"\n{YELLOW}جارٍ تجديد رمز الوصول...{RESET}")
     url = f"{BASE_URL}/oauth/access_token"
     params = {
-        "grant_type":       "fb_exchange_token",
-        "client_id":        APP_ID,
-        "client_secret":    APP_SECRET,
+        "grant_type": "fb_exchange_token",
+        "client_id": APP_ID,
+        "client_secret": APP_SECRET,
         "fb_exchange_token": ACCESS_TOKEN,
     }
     async with httpx.AsyncClient(timeout=20) as client:
@@ -186,8 +188,8 @@ async def refresh_token_cmd() -> None:
             _handle_api_error("GET", "/oauth/access_token", r, data)
             sys.exit(1)
 
-        new_token    = data.get("access_token", "")
-        expires_in   = data.get("expires_in", 0)
+        new_token = data.get("access_token", "")
+        expires_in = data.get("expires_in", 0)
         expires_days = int(expires_in) // 86400 if expires_in else "?"
 
         if not new_token:
@@ -211,75 +213,115 @@ async def refresh_token_cmd() -> None:
 
 # ── data collection ───────────────────────────────────────────────────────────
 
+
 async def collect_all(client: httpx.AsyncClient) -> dict:
     """Pull all data needed for analysis."""
     print(f"\n{YELLOW}جارٍ جمع البيانات من Meta API...{RESET}")
 
-    account = await api_get(client, f"/{ACCOUNT_ID}", {
-        "fields": "id,name,account_status,currency,timezone_name,amount_spent,balance,spend_cap"
-    })
+    account = await api_get(
+        client,
+        f"/{ACCOUNT_ID}",
+        {"fields": "id,name,account_status,currency,timezone_name,amount_spent,balance,spend_cap"},
+    )
 
-    campaigns = await api_get(client, f"/{ACCOUNT_ID}/campaigns", {
-        "fields": "id,name,status,objective,daily_budget,lifetime_budget,start_time,stop_time,created_time",
-        "limit": 50,
-    })
+    campaigns = await api_get(
+        client,
+        f"/{ACCOUNT_ID}/campaigns",
+        {
+            "fields": "id,name,status,objective,daily_budget,lifetime_budget,start_time,stop_time,created_time",
+            "limit": 50,
+        },
+    )
 
-    adsets = await api_get(client, f"/{ACCOUNT_ID}/adsets", {
-        "fields": "id,name,status,campaign_id,daily_budget,lifetime_budget,billing_event,optimization_goal,targeting,start_time,end_time",
-        "limit": 100,
-    })
+    adsets = await api_get(
+        client,
+        f"/{ACCOUNT_ID}/adsets",
+        {
+            "fields": "id,name,status,campaign_id,daily_budget,lifetime_budget,billing_event,optimization_goal,"
+            "targeting,start_time,end_time",
+            "limit": 100,
+        },
+    )
 
-    ads = await api_get(client, f"/{ACCOUNT_ID}/ads", {
-        "fields": "id,name,status,adset_id,campaign_id,created_time",
-        "limit": 100,
-    })
+    ads = await api_get(
+        client,
+        f"/{ACCOUNT_ID}/ads",
+        {
+            "fields": "id,name,status,adset_id,campaign_id,created_time",
+            "limit": 100,
+        },
+    )
 
     # Overall insights – last 30 days
-    insights_30d = await api_get(client, f"/{ACCOUNT_ID}/insights", {
-        "date_preset": "last_30d",
-        "fields": "impressions,clicks,spend,reach,cpc,cpm,ctr,frequency",
-        "level": "account",
-    })
+    insights_30d = await api_get(
+        client,
+        f"/{ACCOUNT_ID}/insights",
+        {
+            "date_preset": "last_30d",
+            "fields": "impressions,clicks,spend,reach,cpc,cpm,ctr,frequency",
+            "level": "account",
+        },
+    )
 
     # By age + gender
-    insights_age = await api_get(client, f"/{ACCOUNT_ID}/insights", {
-        "date_preset": "last_30d",
-        "fields": "impressions,clicks,spend,reach,ctr",
-        "breakdowns": "age,gender",
-        "level": "account",
-    })
+    insights_age = await api_get(
+        client,
+        f"/{ACCOUNT_ID}/insights",
+        {
+            "date_preset": "last_30d",
+            "fields": "impressions,clicks,spend,reach,ctr",
+            "breakdowns": "age,gender",
+            "level": "account",
+        },
+    )
 
     # By placement
-    insights_placement = await api_get(client, f"/{ACCOUNT_ID}/insights", {
-        "date_preset": "last_30d",
-        "fields": "impressions,clicks,spend,reach,ctr,cpm",
-        "breakdowns": "publisher_platform,platform_position",
-        "level": "account",
-    })
+    insights_placement = await api_get(
+        client,
+        f"/{ACCOUNT_ID}/insights",
+        {
+            "date_preset": "last_30d",
+            "fields": "impressions,clicks,spend,reach,ctr,cpm",
+            "breakdowns": "publisher_platform,platform_position",
+            "level": "account",
+        },
+    )
 
     # By country
-    insights_geo = await api_get(client, f"/{ACCOUNT_ID}/insights", {
-        "date_preset": "last_30d",
-        "fields": "impressions,clicks,spend,reach,ctr",
-        "breakdowns": "country",
-        "level": "account",
-    })
+    insights_geo = await api_get(
+        client,
+        f"/{ACCOUNT_ID}/insights",
+        {
+            "date_preset": "last_30d",
+            "fields": "impressions,clicks,spend,reach,ctr",
+            "breakdowns": "country",
+            "level": "account",
+        },
+    )
 
     # Weekly trend (last 28 days, 7-day buckets)
-    insights_weekly = await api_get(client, f"/{ACCOUNT_ID}/insights", {
-        "date_preset": "last_28d",
-        "fields": "impressions,clicks,spend,reach,ctr,cpm",
-        "time_increment": "7",
-        "level": "account",
-    })
+    insights_weekly = await api_get(
+        client,
+        f"/{ACCOUNT_ID}/insights",
+        {
+            "date_preset": "last_28d",
+            "fields": "impressions,clicks,spend,reach,ctr,cpm",
+            "time_increment": "7",
+            "level": "account",
+        },
+    )
 
     # Per-campaign insights
     campaign_insights: list[dict] = []
-    for camp in (campaigns.get("data") or []):
-        ci = await api_get(client, f"/{camp['id']}/insights", {
-            "date_preset": "last_30d",
-            "fields": "impressions,clicks,spend,reach,ctr,cpm,cpc",
-        })
+    for camp in campaigns.get("data") or []:
+        ci = await api_get(
+            client,
+            f"/{camp['id']}/insights",
+            {
+                "date_preset": "last_30d",
+                "fields": "impressions,clicks,spend,reach,ctr,cpm,cpc",
+            },
+        )
         if ci.get("data"):
             camp_copy = dict(camp)
             camp_copy["insights_30d"] = ci["data"][0]
@@ -301,10 +343,11 @@ async def collect_all(client: httpx.AsyncClient) -> dict:
 
 # ── analysis + report ─────────────────────────────────────────────────────────
 
+
 def print_report(data: dict) -> dict:
     """Print the full Arabic analysis report. Returns scoring dict."""
     acct = data["account"]
-    ins  = data["insights_30d"]
+    ins = data["insights_30d"]
     currency = acct.get("currency", "SAR")
 
     print(f"\n{BOLD}{GREEN}{SEP2}")
@@ -325,14 +368,14 @@ def print_report(data: dict) -> dict:
 
     # ── 30-Day KPIs ───────────────────────────────────────────────────────────
     section("2 / مؤشرات الأداء — آخر 30 يوم")
-    spend   = float(ins.get("spend", 0))
-    reach   = int(ins.get("reach", 0))
-    impr    = int(ins.get("impressions", 0))
-    clicks  = int(ins.get("clicks", 0))
-    cpm     = float(ins.get("cpm", 0))
+    spend = float(ins.get("spend", 0))
+    reach = int(ins.get("reach", 0))
+    impr = int(ins.get("impressions", 0))
+    clicks = int(ins.get("clicks", 0))
+    cpm = float(ins.get("cpm", 0))
     cpc_val = float(ins.get("cpc", 0))
-    ctr     = float(ins.get("ctr", 0))
-    freq    = float(ins.get("frequency", 0))
+    ctr = float(ins.get("ctr", 0))
+    freq = float(ins.get("frequency", 0))
 
     print(f"  الإنفاق الإجمالي : {spend:,.2f} {currency}")
     print(f"  الوصول (Reach)   : {reach:,} شخص")
@@ -354,18 +397,23 @@ def print_report(data: dict) -> dict:
 
     if data["campaign_insights"]:
         subsection("أداء كل حملة — آخر 30 يوم")
-        for c in sorted(data["campaign_insights"], key=lambda x: float(x.get("insights_30d", {}).get("spend", 0)), reverse=True):
+        for c in sorted(
+            data["campaign_insights"], key=lambda x: float(x.get("insights_30d", {}).get("spend", 0)), reverse=True
+        ):
             ci = c.get("insights_30d", {})
             obj = c.get("objective", "—")
             status_icon = f"{GREEN}●{RESET}" if c.get("status") == "ACTIVE" else f"{YELLOW}●{RESET}"
             print(f"  {status_icon} {c['name'][:45]}")
-            print(f"      الهدف: {obj} | إنفاق: {float(ci.get('spend',0)):,.2f} | CPM: {float(ci.get('cpm',0)):.2f} | CTR: {float(ci.get('ctr',0)):.2f}%")
+            print(
+                f"      الهدف: {obj} | إنفاق: {float(ci.get('spend', 0)):,.2f} | CPM: "
+                f"{float(ci.get('cpm', 0)):.2f} | CTR: {float(ci.get('ctr', 0)):.2f}%"
+            )
 
     # ── Objectives analysis ───────────────────────────────────────────────────
     subsection("تحليل الأهداف المستخدمة")
     odax = {"AWARENESS", "TRAFFIC", "ENGAGEMENT", "LEADS", "APP_PROMOTION", "SALES"}
     objectives = [c.get("objective", "") for c in campaigns]
-    used_odax   = [o for o in objectives if o in odax]
+    used_odax = [o for o in objectives if o in odax]
     used_legacy = [o for o in objectives if o not in odax and o]
     if used_odax:
         print(f"  ODAX (موصى به)  : {', '.join(set(used_odax))}")
@@ -382,10 +430,10 @@ def print_report(data: dict) -> dict:
         subsection("تفاصيل المجموعات")
         for ads in adsets[:10]:
             tgt = ads.get("targeting", {})
-            ages = f"{tgt.get('age_min','?')}–{tgt.get('age_max','?')}"
+            ages = f"{tgt.get('age_min', '?')}–{tgt.get('age_max', '?')}"
             countries = ", ".join((tgt.get("geo_locations") or {}).get("countries", ["—"]))
-            print(f"  • {ads.get('name','—')[:45]}")
-            print(f"    الفئة العمرية: {ages} | الدول: {countries} | الهدف: {ads.get('optimization_goal','—')}")
+            print(f"  • {ads.get('name', '—')[:45]}")
+            print(f"    الفئة العمرية: {ages} | الدول: {countries} | الهدف: {ads.get('optimization_goal', '—')}")
 
     # ── Audience breakdown ────────────────────────────────────────────────────
     section("5 / تحليل الجمهور")
@@ -418,7 +466,10 @@ def print_report(data: dict) -> dict:
         subsection("التوزيع الجغرافي (أعلى 8 دول)")
         top_geo = sorted(geo_data, key=lambda x: float(x.get("spend", 0)), reverse=True)[:8]
         for row in top_geo:
-            print(f"  {row.get('country','—'):5}  إنفاق: {float(row.get('spend',0)):7.2f}  CTR: {float(row.get('ctr',0)):.2f}%")
+            print(
+                f"  {row.get('country', '—'):5}  إنفاق: {float(row.get('spend', 0)):7.2f}  CTR: "
+                f"{float(row.get('ctr', 0)):.2f}%"
+            )
 
     # ── Placements ────────────────────────────────────────────────────────────
     section("6 / أداء المنصات والمواضع")
@@ -446,14 +497,14 @@ def print_report(data: dict) -> dict:
         for w in weekly:
             date_str = w.get("date_start", "—")[:10]
             print(
-                f"  {date_str:<12} {float(w.get('spend',0)):>8.2f} "
-                f"{int(w.get('reach',0)):>10,} {int(w.get('clicks',0)):>8,} "
-                f"{float(w.get('ctr',0)):>7.2f}%"
+                f"  {date_str:<12} {float(w.get('spend', 0)):>8.2f} "
+                f"{int(w.get('reach', 0)):>10,} {int(w.get('clicks', 0)):>8,} "
+                f"{float(w.get('ctr', 0)):>7.2f}%"
             )
 
     # ── Scoring + Recommendations ─────────────────────────────────────────────
     section("8 / التشخيص والتوصيات")
-    issues:    list[str] = []
+    issues: list[str] = []
     strengths: list[str] = []
 
     if cpm < 20:
@@ -467,7 +518,9 @@ def print_report(data: dict) -> dict:
         issues.append(f"CTR منخفض ({ctr:.2f}%) — جرّب إبداعيات جديدة (فيديو / Reels)")
 
     if freq > 5:
-        issues.append(f"تكرار إعلاني مرتفع ({freq:.1f}x) — الجمهور يرى نفس الإعلان كثيراً → توسّع الجمهور أو غيّر الإبداعية")
+        issues.append(
+            f"تكرار إعلاني مرتفع ({freq:.1f}x) — الجمهور يرى نفس الإعلان كثيراً → توسّع الجمهور أو غيّر الإبداعية"
+        )
     elif 2 <= freq <= 4:
         strengths.append(f"تكرار مثالي ({freq:.1f}x)")
 
@@ -489,7 +542,7 @@ def print_report(data: dict) -> dict:
 
     # ── Recommended structure ─────────────────────────────────────────────────
     section("9 / هيكل الحملات المقترح (Q2 2026)")
-    print(f"""
+    print("""
   ┌─────────────────────────────────────────────────────────┐
   │  AWARENESS — awareness_reels_q2_2026                   │
   │  الميزانية: 50 ريال/يوم | الجمهور: Lookalike 1–3%    │
@@ -512,7 +565,7 @@ def print_report(data: dict) -> dict:
     """)
 
     print(f"\n{BOLD}{GREEN}  لإنشاء الحملات تلقائياً:{RESET}")
-    print(f"  python meta_restaurant_analysis.py --create\n")
+    print("  python meta_restaurant_analysis.py --create\n")
 
     return {"cpm": cpm, "ctr": ctr, "freq": freq, "issues": len(issues)}
 
@@ -524,65 +577,77 @@ CAMPAIGNS_TO_CREATE = [
         "name": "awareness_reels_q2_2026",
         "objective": "AWARENESS",
         "daily_budget": 5000,  # 50 SAR in halala
-        "adsets": [{
-            "name": "lookalike_ksa_1_3pct",
-            "optimization_goal": "REACH",
-            "billing_event": "IMPRESSIONS",
-            "daily_budget": 5000,
-            "targeting": {
-                "age_min": 18, "age_max": 50,
-                "genders": [1, 2],
-                "geo_locations": {"countries": ["SA"]},
-            },
-        }],
+        "adsets": [
+            {
+                "name": "lookalike_ksa_1_3pct",
+                "optimization_goal": "REACH",
+                "billing_event": "IMPRESSIONS",
+                "daily_budget": 5000,
+                "targeting": {
+                    "age_min": 18,
+                    "age_max": 50,
+                    "genders": [1, 2],
+                    "geo_locations": {"countries": ["SA"]},
+                },
+            }
+        ],
     },
     {
         "name": "engagement_menu_q2_2026",
         "objective": "ENGAGEMENT",
         "daily_budget": 3000,
-        "adsets": [{
-            "name": "page_visitors_90d",
-            "optimization_goal": "POST_ENGAGEMENT",
-            "billing_event": "IMPRESSIONS",
-            "daily_budget": 3000,
-            "targeting": {
-                "age_min": 18, "age_max": 50,
-                "genders": [1, 2],
-                "geo_locations": {"countries": ["SA"]},
-            },
-        }],
+        "adsets": [
+            {
+                "name": "page_visitors_90d",
+                "optimization_goal": "POST_ENGAGEMENT",
+                "billing_event": "IMPRESSIONS",
+                "daily_budget": 3000,
+                "targeting": {
+                    "age_min": 18,
+                    "age_max": 50,
+                    "genders": [1, 2],
+                    "geo_locations": {"countries": ["SA"]},
+                },
+            }
+        ],
     },
     {
         "name": "leads_whatsapp_q2_2026",
         "objective": "LEADS",
         "daily_budget": 8000,
-        "adsets": [{
-            "name": "retargeting_30d",
-            "optimization_goal": "LEAD_GENERATION",
-            "billing_event": "IMPRESSIONS",
-            "daily_budget": 8000,
-            "targeting": {
-                "age_min": 18, "age_max": 55,
-                "genders": [1, 2],
-                "geo_locations": {"countries": ["SA"]},
-            },
-        }],
+        "adsets": [
+            {
+                "name": "retargeting_30d",
+                "optimization_goal": "LEAD_GENERATION",
+                "billing_event": "IMPRESSIONS",
+                "daily_budget": 8000,
+                "targeting": {
+                    "age_min": 18,
+                    "age_max": 55,
+                    "genders": [1, 2],
+                    "geo_locations": {"countries": ["SA"]},
+                },
+            }
+        ],
     },
     {
         "name": "traffic_location_q2_2026",
         "objective": "TRAFFIC",
         "daily_budget": 4000,
-        "adsets": [{
-            "name": "radius_5km_restaurant",
-            "optimization_goal": "LINK_CLICKS",
-            "billing_event": "IMPRESSIONS",
-            "daily_budget": 4000,
-            "targeting": {
-                "age_min": 18, "age_max": 55,
-                "genders": [1, 2],
-                "geo_locations": {"countries": ["SA"]},
-            },
-        }],
+        "adsets": [
+            {
+                "name": "radius_5km_restaurant",
+                "optimization_goal": "LINK_CLICKS",
+                "billing_event": "IMPRESSIONS",
+                "daily_budget": 4000,
+                "targeting": {
+                    "age_min": 18,
+                    "age_max": 55,
+                    "genders": [1, 2],
+                    "geo_locations": {"countries": ["SA"]},
+                },
+            }
+        ],
     },
 ]
 
@@ -592,10 +657,10 @@ async def create_campaigns(client: httpx.AsyncClient) -> None:
     for camp_spec in CAMPAIGNS_TO_CREATE:
         print(f"\n  {YELLOW}▶ إنشاء حملة: {camp_spec['name']}{RESET}")
         camp_body = {
-            "name":                  camp_spec["name"],
-            "objective":             camp_spec["objective"],
-            "status":                "PAUSED",
-            "daily_budget":          camp_spec["daily_budget"],
+            "name": camp_spec["name"],
+            "objective": camp_spec["objective"],
+            "status": "PAUSED",
+            "daily_budget": camp_spec["daily_budget"],
             "special_ad_categories": "[]",
         }
         result = await api_post(client, f"/{ACCOUNT_ID}/campaigns", camp_body)
@@ -608,13 +673,13 @@ async def create_campaigns(client: httpx.AsyncClient) -> None:
         for adset_spec in camp_spec.get("adsets", []):
             print(f"    {YELLOW}▶ إنشاء مجموعة: {adset_spec['name']}{RESET}")
             adset_body = {
-                "campaign_id":       campaign_id,
-                "name":              adset_spec["name"],
-                "billing_event":     adset_spec["billing_event"],
+                "campaign_id": campaign_id,
+                "name": adset_spec["name"],
+                "billing_event": adset_spec["billing_event"],
                 "optimization_goal": adset_spec["optimization_goal"],
-                "daily_budget":      adset_spec["daily_budget"],
-                "status":            "PAUSED",
-                "targeting":         adset_spec["targeting"],
+                "daily_budget": adset_spec["daily_budget"],
+                "status": "PAUSED",
+                "targeting": adset_spec["targeting"],
             }
             adset_result = await api_post(client, f"/{ACCOUNT_ID}/adsets", adset_body)
             adset_id = adset_result.get("id")
@@ -624,10 +689,11 @@ async def create_campaigns(client: httpx.AsyncClient) -> None:
                 print(f"    {RED}    تعذّر إنشاء المجموعة{RESET}")
 
     print(f"\n{GREEN}{BOLD}  تم إنشاء الهيكل الكامل بنجاح — كل الحملات في وضع PAUSED{RESET}")
-    print(f"  أضف الإعلانات عبر لوحة التحكم أو أداة meta_create_ad\n")
+    print("  أضف الإعلانات عبر لوحة التحكم أو أداة meta_create_ad\n")
 
 
 # ── main ──────────────────────────────────────────────────────────────────────
+
 
 async def main(create: bool = False) -> None:
     if not ACCESS_TOKEN:
@@ -654,8 +720,10 @@ async def main(create: bool = False) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Meta Restaurant Ads Analyzer")
-    parser.add_argument("--create",        action="store_true", help="Create recommended campaign structure after analysis")
-    parser.add_argument("--refresh-token", action="store_true", help="Exchange short-lived token for 60-day long-lived token")
+    parser.add_argument("--create", action="store_true", help="Create recommended campaign structure after analysis")
+    parser.add_argument(
+        "--refresh-token", action="store_true", help="Exchange short-lived token for 60-day long-lived token"
+    )
     args = parser.parse_args()
 
     if args.refresh_token:

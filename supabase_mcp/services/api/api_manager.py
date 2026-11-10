@@ -207,7 +207,8 @@ class SupabaseApiManager:
         """
         # Log the request with proper formatting
         logger.info(
-            f"API Request: {method} {path} | Path params: {path_params or {}} | Query params: {request_params or {}} | Body: {request_body or {}}"
+            f"API Request: {method} {path} | Path params: {path_params or {}} | Query params: "
+            f"{request_params or {}} | Body: {request_body or {}}"
         )
 
         # Create an operation object for validation

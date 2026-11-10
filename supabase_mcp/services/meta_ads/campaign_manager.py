@@ -15,8 +15,14 @@ from supabase_mcp.services.meta_ads.models import (
 )
 
 # Default fields to request for campaign objects
-CAMPAIGN_FIELDS = "id,name,status,objective,daily_budget,lifetime_budget,start_time,stop_time,created_time,updated_time,spend_cap,budget_remaining"
-ADSET_FIELDS = "id,name,status,campaign_id,daily_budget,lifetime_budget,billing_event,optimization_goal,bid_amount,start_time,end_time,targeting,created_time,updated_time"
+CAMPAIGN_FIELDS = (
+    "id,name,status,objective,daily_budget,lifetime_budget,start_time,stop_time,created_time,"
+    "updated_time,spend_cap,budget_remaining"
+)
+ADSET_FIELDS = (
+    "id,name,status,campaign_id,daily_budget,lifetime_budget,billing_event,optimization_goal,"
+    "bid_amount,start_time,end_time,targeting,created_time,updated_time"
+)
 AD_FIELDS = "id,name,status,adset_id,campaign_id,creative,created_time,updated_time"
 ACCOUNT_FIELDS = "id,name,account_status,currency,timezone_name,business,spend_cap,amount_spent,balance"
 

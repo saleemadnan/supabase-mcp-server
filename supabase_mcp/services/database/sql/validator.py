@@ -279,7 +279,8 @@ class SQLValidator:
                 # Get classification for this statement type
                 classification = self.safety_config.classify_statement(stmt_type, stmt_node)
                 logger.debug(
-                    f"Statement category classified as: {classification.get('category', 'UNKNOWN')} - risk level: {classification.get('risk_level', 'UNKNOWN')}"
+                    f"Statement category classified as: {classification.get('category', 'UNKNOWN')} - "
+                    f"risk level: {classification.get('risk_level', 'UNKNOWN')}"
                 )
                 logger.debug(f"DEBUGGING QUERY EXTRACTION LOCATION: {stmt.stmt_location} - {stmt.stmt_len}")
 
@@ -319,7 +320,8 @@ class SQLValidator:
                 logger.debug("No valid statements found in the query")
                 raise ValidationError("No queries were parsed - please check correctness of your query")
             logger.debug(
-                f"Validated a total of {len(result.statements)} with the highest risk level of: {result.highest_risk_level}"
+                f"Validated a total of {len(result.statements)} with the highest risk level of: "
+                f"{result.highest_risk_level}"
             )
             return result
 

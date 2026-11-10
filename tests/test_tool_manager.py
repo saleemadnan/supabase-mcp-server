@@ -128,7 +128,9 @@ class TestToolManager:
         assert len(empty_descriptions) == 0, f"Found empty descriptions for tools: {empty_descriptions}"
 
         # Check that every ToolName enum value has a description.
-        missing_descriptions = [tool_name.value for tool_name in ToolName if not manager.get_description(tool_name.value)]
+        missing_descriptions = [
+            tool_name.value for tool_name in ToolName if not manager.get_description(tool_name.value)
+        ]
         assert not missing_descriptions, f"Missing descriptions for tools: {missing_descriptions}"
 
         # Reset the singleton for other tests

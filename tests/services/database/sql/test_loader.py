@@ -68,7 +68,10 @@ class TestSQLLoader:
 
     def test_get_migrations_query(self):
         """Test getting migrations query with all parameters."""
-        mock_sql = "SELECT * FROM migrations WHERE name LIKE '%{name_pattern}%' LIMIT {limit} OFFSET {offset} AND include_queries = {include_full_queries};"
+        mock_sql = (
+            "SELECT * FROM migrations WHERE name LIKE '%{name_pattern}%' LIMIT {limit} OFFSET "
+            "{offset} AND include_queries = {include_full_queries};"
+        )
         expected = "SELECT * FROM migrations WHERE name LIKE '%test%' LIMIT 10 OFFSET 5 AND include_queries = true;"
 
         with patch.object(SQLLoader, "load_sql", return_value=mock_sql):

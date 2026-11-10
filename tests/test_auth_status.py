@@ -1,4 +1,5 @@
 """Unit tests for get_auth_status tool."""
+
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
