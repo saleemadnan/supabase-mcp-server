@@ -519,7 +519,8 @@ class TestAPITools:
                         "name": function_slug,
                         "slug": function_slug,
                         "verify_jwt": True,
-                        "body": "export default async function(req, res) { return res.json({ message: 'Hello World' }) }",
+                        "body": "export default async function(req, res) "
+                        "{ return res.json({ message: 'Hello World' }) }",
                     },
                 )
             except Exception as e:
@@ -893,7 +894,8 @@ class TestAuthTools:
                 user_id = invite_result.user.id
 
             except Exception as e:
-                # If we get a 500 error or an error about sending invite email, it's likely because email sending failed in test environment
+                # If we get a 500 error or an error about sending invite email,
+                # it's likely because email sending failed in test environment
                 # This is expected and we can skip the test
                 error_str = str(e)
                 if "500" in error_str or "Error sending invite email" in error_str:
@@ -942,17 +944,17 @@ class TestAuthTools:
         """Test that an invalid method raises an exception."""
         # Test with an invalid method name
         sdk_client = initialized_container_integration.sdk_client
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017 - SDK error type varies by failure
             await sdk_client.call_auth_admin_method(method="invalid_method", params={})
 
         # Test with valid method but invalid parameters
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017 - SDK error type varies by failure
             await sdk_client.call_auth_admin_method(method="get_user_by_id", params={"invalid_param": "value"})
 
             await sdk_client.call_auth_admin_method(method="invalid_method", params={})
 
         # Test with valid method but invalid parameters
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017 - SDK error type varies by failure
             await sdk_client.call_auth_admin_method(method="get_user_by_id", params={"invalid_param": "value"})
 
 
@@ -1134,15 +1136,9 @@ class TestLogsAndAnalyticsTools:
         # If we have results, verify they contain the search term
         if result["result"]:
             # At least one log should contain the search term (case insensitive)
-            search_found = False
-            for log in result["result"]:
-                if "connection" in log["event_message"].lower():
-                    search_found = True
-                    break
-
-            # We don't assert this because the search is done at the SQL level
-            # and might use more complex matching than simple string contains
-            # assert search_found, "At least one log should contain the search term"
+            # We don't assert on the content because the search is done at the SQL level
+            # and might use more complex matching than simple string contains.
+            assert all("event_message" in log for log in result["result"])
 
     async def test_filtering_by_custom_filters(self, initialized_container_integration: ServicesContainer):
         """Test filtering logs by custom filters."""

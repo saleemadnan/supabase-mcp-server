@@ -5,7 +5,12 @@ from typing import Any, Optional
 from supabase_mcp.exceptions import ConfirmationRequiredError, OperationNotAllowedError
 from supabase_mcp.logger import logger
 from supabase_mcp.services.safety.models import ClientType, SafetyMode
-from supabase_mcp.services.safety.safety_configs import APISafetyConfig, MetaSafetyConfig, SafetyConfigBase, SQLSafetyConfig
+from supabase_mcp.services.safety.safety_configs import (
+    APISafetyConfig,
+    MetaSafetyConfig,
+    SafetyConfigBase,
+    SQLSafetyConfig,
+)
 
 
 class SafetyManager:
@@ -142,7 +147,9 @@ class SafetyManager:
                 f"WHAT HAPPENED: This high-risk operation was rejected for safety reasons.\n"
                 f"WHAT TO DO: 1. Review the operation with the user and explain the risks\n"
                 f"            2. If the user approves, use the confirmation tool with this ID: {confirmation_id}\n\n"
-                f'CONFIRMATION COMMAND: confirm_destructive_postgresql(confirmation_id="{confirmation_id}", user_confirmation=True)'
+                "CONFIRMATION COMMAND: "
+                f'confirm_destructive_postgresql(confirmation_id="{confirmation_id}", '
+                "user_confirmation=True)"
             )
             logger.debug(
                 f"Operation with risk level {risk_level} requires confirmation, stored with ID {confirmation_id}"

@@ -213,7 +213,8 @@ class ManagementAPIClient:
         # Check if access token is available
         if not self.settings.supabase_access_token:
             raise APIClientError(
-                "Supabase access token is not configured. Set SUPABASE_ACCESS_TOKEN environment variable to use Management API tools."
+                "Supabase access token is not configured. Set SUPABASE_ACCESS_TOKEN environment "
+                "variable to use Management API tools."
             )
 
         # Log detailed request information

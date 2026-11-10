@@ -151,12 +151,12 @@ automatically.
 incomplete defs, etc. are errors); the `tests.*` override relaxes those same
 checks for test code.
 
-**What actually blocks:** in `ci.yml`, only the unit-test step fails the job —
-the ruff lint and format steps are informational (`continue-on-error: true`),
-and mypy does not run in CI at all. The pre-commit mypy hook is wrapped in `|| true`, so it
-never fails either. The codebase currently has pre-existing ruff findings, so
-don't assume a clean `ruff check .` — check that your change adds no new ones,
-and run `uv run mypy` yourself on code you touch.
+**What actually blocks:** in `ci.yml`, the unit-test step and the ruff lint and
+format steps all fail the job — `ruff check .` and `ruff format --check .` are
+clean, so keep them that way. mypy does not run in CI at all, and the pre-commit
+mypy hook is wrapped in `|| true`, so it never fails; mypy currently reports
+pre-existing errors, so run `uv run mypy supabase_mcp` yourself and check that
+your change adds no new ones.
 
 ## Conventions
 
@@ -189,8 +189,8 @@ and use clear commit messages (`feat: ...`, `fix: ...` style).
 ## CI/CD (`.github/workflows/`)
 
 - `ci.yml` — on push/PR to `main` (and manual): runs unit tests
-  (`pytest -m "not integration"` with coverage; the only blocking step) and
-  informational ruff lint/format checks
+  (`pytest -m "not integration"` with coverage) and ruff lint/format checks;
+  all three are blocking
 - `publish.yaml` — on GitHub Release: builds the wheel with `uv` and publishes
   to PyPI via trusted publishing
 - `codeql.yml` — CodeQL security scanning on push/PR to `main` and a weekly schedule

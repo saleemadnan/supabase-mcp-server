@@ -208,7 +208,7 @@ class ApiSpecManager:
                     domains_set.add(tag)
 
         self._paths_cache = paths_cache
-        self._domains_cache = sorted(list(domains_set))
+        self._domains_cache = sorted(domains_set)
 
 
 # Example usage (assuming you have an instance of ApiSpecManager called 'spec_manager'):

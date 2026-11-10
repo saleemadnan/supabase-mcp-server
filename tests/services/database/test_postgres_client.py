@@ -128,7 +128,7 @@ class TestPostgresClient:
         try:
             await postgres_client_integration._handle_postgres_error(error)
             # If we get here, the test should fail
-            assert False, "Expected PermissionError was not raised"
+            raise AssertionError("Expected PermissionError was not raised")
         except Exception as e:
             # Verify it's the right type of exception
             from supabase_mcp.exceptions import PermissionError as SupabasePermissionError

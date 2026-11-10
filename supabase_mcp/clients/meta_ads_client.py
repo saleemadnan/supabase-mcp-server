@@ -72,7 +72,9 @@ class MetaAdsClient(AsyncHTTPClient):
     async def get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         return await self.execute_request("GET", path, request_params=self._inject_token(params))
 
-    async def post(self, path: str, body: dict[str, Any] | None = None, params: dict[str, Any] | None = None) -> dict[str, Any]:
+    async def post(
+        self, path: str, body: dict[str, Any] | None = None, params: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         return await self.execute_request("POST", path, request_params=self._inject_token(params), request_body=body)
 
     async def delete(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:

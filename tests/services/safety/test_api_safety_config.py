@@ -156,7 +156,7 @@ class TestAPISafetyConfig:
         assert OperationRiskLevel.EXTREME in config.PATH_SAFETY_CONFIG
 
         # Check that each risk level has a dictionary of methods to paths
-        for risk_level, methods_dict in config.PATH_SAFETY_CONFIG.items():
+        for _risk_level, methods_dict in config.PATH_SAFETY_CONFIG.items():
             assert isinstance(methods_dict, dict)
             for method, paths in methods_dict.items():
                 assert isinstance(method, HTTPMethod)

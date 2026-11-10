@@ -44,7 +44,8 @@ class LogManager:
             The WHERE clause as a string
         """
         logger.debug(
-            f"Building WHERE clause for collection={collection}, hours_ago={hours_ago}, filters={filters}, search={search}"
+            f"Building WHERE clause for collection={collection}, hours_ago={hours_ago}, "
+            f"filters={filters}, search={search}"
         )
 
         clauses = []

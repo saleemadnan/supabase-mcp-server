@@ -141,7 +141,8 @@ class Settings(BaseSettings):
     )
     meta_ad_account_id: str | None = Field(
         default=None,
-        description="Primary Meta Ad Account ID (e.g. act_123456789). Used as default when account_id is not specified.",
+        description="Primary Meta Ad Account ID (e.g. act_123456789). Used as default when account_id is not "
+        "specified.",
         alias="META_AD_ACCOUNT_ID",
     )
     meta_ad_account_ids: str | None = Field(
